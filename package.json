@@ -1,0 +1,42 @@
+{
+  "name": "ai-blogger-content-automation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli/index.ts",
+    "start": "node dist/cli/index.js",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "verify:phase2": "npm run lint && npm run build && npm test",
+    "verify:phase3": "npm run lint && npm run build && npm test",
+    "verify:phase4": "npm run lint && npm run build && npm test",
+    "verify:execution-boundary": "node scripts/verify-execution-boundary.mjs",
+    "format:check:phase5": "prettier --check package.json scripts/verify-execution-boundary.mjs scripts/repair-authorized-scheduled-image.mjs scripts/inspect-schedule-confirmation.mjs src/cli/index.ts src/cli/args.ts src/cli/operationalCli.ts src/browser/bloggerDryRun.ts src/services/bloggerTimezoneValidation.ts src/services/publishedPostAuditService.ts src/services/scheduledPostExecutionService.ts src/tests/bloggerTimezoneValidation.test.ts src/tests/publishedPostAuditService.test.ts src/tests/cliArgs.test.ts src/tests/scheduledPostExecutionBoundary.test.ts README.md docs/local-completion-handoff.md docs/phase3-completion-checklist.md docs/phase4-completion-checklist.md docs/phase5-boundary-checklist.md docs/phase5-release-checklist.md docs/phase5-operations-runbook.md docs/read-only-scheduled-audit-example.md docs/adr/0006-dedicated-test-blog-scheduled-execution.md",
+    "verify:phase5-boundary": "npm run format:check:phase5 && npm run lint && npm run build && npm test && npm run verify:execution-boundary",
+    "verify:local-complete": "npm run verify:phase5-boundary",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@playwright/test": "^1.46.0",
+    "better-sqlite3": "^11.1.2",
+    "dotenv": "^16.4.5",
+    "pino": "^9.3.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.1.0",
+    "@typescript-eslint/parser": "^8.1.0",
+    "eslint": "^9.9.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.17.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

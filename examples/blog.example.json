@@ -1,0 +1,16 @@
+{
+  "blogKey": "international-affairs-jp-01",
+  "displayName": "国際情勢解説ブログ",
+  "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+  "publicUrl": "https://example.blogspot.com/",
+  "primaryTheme": "サッカーゴシップ",
+  "language": "ja",
+  "targetCountry": "JP",
+  "targetAudience": ["噂好きのサッカーファン", "ビジネスパーソン", "学生"],
+  "topicClusters": ["移籍", "事件", "珍記録", "SNS", "恋愛", "喧嘩"],
+  "excludedTopics": ["根拠のないうわさ", "未確認情報", "差別的表現", "陰謀論"],
+  "dailyPostLimit": 1,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

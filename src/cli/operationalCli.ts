@@ -1,0 +1,258 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { openChromeForManualLogin } from "../browser/chromeProfile.js";
+import { BloggerDryRunClient } from "../browser/bloggerDryRun.js";
+import { loadBloggerSelectors } from "../browser/bloggerSelectors.js";
+import { blogConfigSchema } from "../config/blogConfig.js";
+import { loadConfig } from "../config/env.js";
+import { articleInputSchema } from "../domain/article.js";
+import { createLogger } from "../logging/logger.js";
+import { ArticleRepository } from "../repositories/articleRepository.js";
+import { BlogRepository } from "../repositories/blogRepository.js";
+import { withMigratedDatabase } from "../repositories/database.js";
+import { JobRepository } from "../repositories/jobRepository.js";
+import { DryRunService } from "../services/dryRunService.js";
+import { DraftSaveService } from "../services/draftSaveService.js";
+import { SchedulePlanService } from "../services/schedulePlanService.js";
+import { ScheduleApprovalService } from "../services/scheduleApprovalService.js";
+import { ScheduleReadinessService } from "../services/scheduleReadinessService.js";
+import { ScheduleCancellationService } from "../services/scheduleCancellationService.js";
+import { ApprovedSchedulePreviewService } from "../services/approvedSchedulePreviewService.js";
+import { SchedulePreviewConfirmationService } from "../services/schedulePreviewConfirmationService.js";
+import { ScheduleExecutionPackageService } from "../services/scheduleExecutionPackageService.js";
+import { ScheduleExecutionPackageAuditService } from "../services/scheduleExecutionPackageAuditService.js";
+import { PublishedPostAuditService } from "../services/publishedPostAuditService.js";
+import { ScheduledPostExecutionService } from "../services/scheduledPostExecutionService.js";
+import { parseJsonWithBom } from "../utils/json.js";
+
+import { commandRequiresDatabase, parseArgs } from "./args.js";
+
+function requiredString(options: Record<string, string>, key: string): string {
+  const value = options[key];
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Missing required option --${key}`);
+  }
+  return value;
+}
+
+async function readJsonFile<T>(filePath: string): Promise<T> {
+  return parseJsonWithBom<T>(await readFile(resolve(filePath), "utf8"));
+}
+
+export async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2));
+
+  if (args.command === "help") {
+    printHelp();
+    return;
+  }
+
+  const config = loadConfig();
+  const logger = createLogger(config);
+  if (args.command === "open-login") {
+    const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+    const result = await openChromeForManualLogin({ config, url: blog.adminUrl });
+    logger.info(
+      { profilePath: result.profilePath, adminUrl: blog.adminUrl },
+      "Chrome opened for manual Blogger login. Close that Chrome window before running dry-run."
+    );
+    return;
+  }
+
+  if (args.command === "audit-drafts") {
+    const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+    const article = articleInputSchema.parse(
+      await readJsonFile(requiredString(args.options, "article"))
+    );
+    const selectors = await loadBloggerSelectors(blog.blogger.selectorsPath);
+    const result = await new BloggerDryRunClient(config, selectors).findDrafts({
+      adminUrl: blog.adminUrl,
+      title: article.title
+    });
+    logger.info(result, "Draft audit result");
+    return;
+  }
+
+  if (args.command === "audit-published-post") {
+    const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+    const article = articleInputSchema.parse(
+      await readJsonFile(requiredString(args.options, "article"))
+    );
+    const result = await new PublishedPostAuditService().execute({ blog, article });
+    logger.info(result, "Published post audit result");
+    return;
+  }
+  if (!commandRequiresDatabase(args.command)) {
+    throw new Error(`Command does not have a database policy: ${args.command}`);
+  }
+
+  await withMigratedDatabase(config.DATABASE_PATH, async (db) => {
+    const repos = {
+      blogs: new BlogRepository(db),
+      jobs: new JobRepository(db),
+      articles: new ArticleRepository(db)
+    };
+
+    if (args.command === "init-db") {
+      logger.info({ databasePath: config.DATABASE_PATH }, "Database initialized");
+      return;
+    }
+
+    if (args.command === "register-blog") {
+      const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+      repos.blogs.upsert(blog);
+      logger.info({ blogKey: blog.blogKey }, "Blog registered");
+      return;
+    }
+    if (args.command === "dry-run") {
+      const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+      const article = articleInputSchema.parse(
+        await readJsonFile(requiredString(args.options, "article"))
+      );
+      const result = await new DryRunService(config, repos, logger).execute({
+        blog,
+        article
+      });
+      logger.info(result, "Dry-run result");
+      return;
+    }
+
+    if (args.command === "execute-schedule") {
+      const result = await new ScheduledPostExecutionService(config, repos, logger).execute({
+        jobId: requiredString(args.options, "job"),
+        confirmation: requiredString(args.options, "confirm"),
+        packageSha256: requiredString(args.options, "package-sha"),
+        auditSha256: requiredString(args.options, "audit-sha")
+      });
+      logger.info(result, "Scheduled post execution result");
+      return;
+    }
+    if (args.command === "audit-execution-package") {
+      const jobId = requiredString(args.options, "job");
+      const packageSha256 = requiredString(args.options, "package-sha");
+      const result = await new ScheduleExecutionPackageAuditService(
+        config,
+        repos.jobs,
+        logger
+      ).execute({ jobId, packageSha256 });
+      logger.info(result, "Schedule execution package audit result");
+      return;
+    }
+    if (args.command === "prepare-execution-package") {
+      const jobId = requiredString(args.options, "job");
+      const confirmation = requiredString(args.options, "confirm");
+      const previewConfirmationSha256 = requiredString(args.options, "preview-confirmation-sha");
+      const result = await new ScheduleExecutionPackageService(config, repos.jobs, logger).execute({
+        jobId,
+        confirmation,
+        previewConfirmationSha256
+      });
+      logger.info(result, "Schedule execution package result");
+      return;
+    }
+    if (args.command === "confirm-schedule-preview") {
+      const jobId = requiredString(args.options, "job");
+      const confirmation = requiredString(args.options, "confirm");
+      const previewSha256 = requiredString(args.options, "preview-sha");
+      const result = await new SchedulePreviewConfirmationService(
+        config,
+        repos.jobs,
+        logger
+      ).execute({ jobId, confirmation, previewSha256 });
+      logger.info(result, "Schedule preview confirmation result");
+      return;
+    }
+    if (args.command === "preview-approved-schedule") {
+      const jobId = requiredString(args.options, "job");
+      const result = await new ApprovedSchedulePreviewService(config, repos, logger).execute({
+        jobId
+      });
+      logger.info(result, "Approved schedule browser preview result");
+      return;
+    }
+    if (args.command === "cancel-schedule") {
+      const jobId = requiredString(args.options, "job");
+      const confirmation = requiredString(args.options, "confirm");
+      const result = await new ScheduleCancellationService(config, repos.jobs, logger).execute({
+        jobId,
+        confirmation
+      });
+      logger.info(result, "Local schedule cancellation result");
+      return;
+    }
+    if (args.command === "check-schedule") {
+      const jobId = requiredString(args.options, "job");
+      const result = await new ScheduleReadinessService(config, repos, logger).execute({ jobId });
+      logger.info(result, "Local schedule readiness result");
+      return;
+    }
+    if (args.command === "approve-schedule") {
+      const jobId = requiredString(args.options, "job");
+      const confirmation = requiredString(args.options, "confirm");
+      const result = await new ScheduleApprovalService(
+        config,
+        repos.jobs,
+        repos.articles,
+        logger
+      ).execute({
+        jobId,
+        confirmation
+      });
+      logger.info(result, "Local schedule approval result");
+      return;
+    }
+    if (args.command === "plan-schedule") {
+      const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+      const article = articleInputSchema.parse(
+        await readJsonFile(requiredString(args.options, "article"))
+      );
+      const result = await new SchedulePlanService(config, repos, logger).execute({
+        blog,
+        article
+      });
+      logger.info(result, "Local schedule plan result");
+      return;
+    }
+    if (args.command === "save-draft") {
+      const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+      const article = articleInputSchema.parse(
+        await readJsonFile(requiredString(args.options, "article"))
+      );
+      const result = await new DraftSaveService(config, repos, logger).execute({
+        blog,
+        article
+      });
+      logger.info(result, "Draft save result");
+      return;
+    }
+    throw new Error(`Unknown command: ${args.command}`);
+  });
+}
+
+function printHelp(): void {
+  console.log(`AI Blogger Content Automation
+
+Commands:
+  init-db
+  open-login --blog <path>
+  register-blog --blog <path>
+  audit-drafts --blog <path> --article <path>
+  audit-published-post --blog <path> --article <path>
+  dry-run --blog <path> --article <path>
+  save-draft --blog <path> --article <path>
+  plan-schedule --blog <path> --article <path>
+  approve-schedule --job <jobId> --confirm <jobId>
+  check-schedule --job <jobId>
+  cancel-schedule --job <jobId> --confirm <jobId>
+  preview-approved-schedule --job <jobId>
+  confirm-schedule-preview --job <jobId> --confirm <jobId> --preview-sha <sha256>
+  prepare-execution-package --job <jobId> --confirm <jobId> --preview-confirmation-sha <sha256>
+  audit-execution-package --job <jobId> --package-sha <sha256>
+  execute-schedule --job <jobId> --confirm <jobId> --package-sha <sha256> --audit-sha <sha256>
+
+Dry-run opens Blogger and fills the editor only. It never saves, publishes, or confirms scheduling.
+Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms scheduling.
+Plan-schedule, approve-schedule, check-schedule, cancel-schedule, and prepare-execution-package are local-only and never open Blogger.
+Use open-login first when Google blocks login in an automated browser.
+`);
+}
