@@ -5,9 +5,10 @@
 - [x] Scoped formatting passes.
 - [x] ESLint passes.
 - [x] TypeScript build passes.
-- [x] All 33 test files and 292 tests pass.
+- [x] All 33 test files and 297 tests pass.
 - [x] Compiled scheduled-execution boundary verification passes.
-- [x] Production dependency audit reports zero known vulnerabilities.
+- [x] A clean shallow clone can run `npm ci` and the complete local gate without local runtime data.
+- [x] Production and development dependency audits report zero known vulnerabilities.
 - [x] Repository secret scan finds no credential-shaped value outside ignored runtime data; the only match is a logger redaction test fixture.
 - [x] `.env`, `data`, `dist`, and `node_modules` are ignored.
 - [x] Runtime mutation flags are restored to `ENABLE_DRAFT_SAVE=false` and `ENABLE_SCHEDULED_POST=false`.
