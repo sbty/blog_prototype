@@ -8,6 +8,7 @@
     "dev": "tsx src/cli/index.ts",
     "start": "node dist/cli/index.js",
     "test": "vitest run",
+    "audit:dependencies": "npm audit --audit-level=moderate",
     "lint": "eslint .",
     "verify:phase2": "npm run lint && npm run build && npm test",
     "verify:phase3": "npm run lint && npm run build && npm test",
