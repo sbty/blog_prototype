@@ -1,5 +1,15 @@
 # AI Blogger Content Automation
 
+[![CI](https://github.com/sbty/blog_prototype/actions/workflows/ci.yml/badge.svg)](https://github.com/sbty/blog_prototype/actions/workflows/ci.yml)
+
+現在の限定プレリリース: [v0.1.0](https://github.com/sbty/blog_prototype/releases/tag/v0.1.0)
+
+このリリースは、ローカルで明示的に設定した専用Bloggerテストブログだけを対象とします。追加のBlogger実操作、無人公開、本番運用を許可するものではありません。
+
+- [開発・PR手順](CONTRIBUTING.md)
+- [セキュリティーポリシーと非公開報告](SECURITY.md)
+- [Code scanning](https://github.com/sbty/blog_prototype/security/code-scanning)
+
 Google Blogger 向け AI ブログ自動運用システムです。下書き保存、予約証跡フロー、および専用テストブログ限定の予約実行境界を実装しています。予約実行はブログID、証跡ハッシュ、STOP、機能フラグ、一回限りマーカーで制限されます。
 
 ## 実装済み
