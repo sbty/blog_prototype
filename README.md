@@ -395,3 +395,13 @@ node dist/cli/index.js inspect-campaign --campaign <campaignId>
 ```
 
 各記事は `READY_TO_EXECUTE`、`RETRY_AVAILABLE`、`EXECUTED`、`EVIDENCE_INVALID`、`JOB_MISSING`、`JOB_STATE_INVALID`、`NEEDS_ATTENTION` のいずれかに分類されます。キャンペーン結果の件数、実行用JSON、再試行用JSON、ジョブID、パッケージ・監査SHA、実行結果JSONも照合します。このコマンドはSTOP中でも利用できる読み取り専用診断です。
+
+## キャンペーン一覧
+
+キャンペーンIDが分からない場合は、すべてのキャンペーンを完了日時の新しい順に確認できます。
+
+```powershell
+node dist/cli/index.js list-campaigns
+```
+
+一覧の状態は `READY_TO_EXECUTE`、`RETRY_AVAILABLE`、`COMPLETED`、`ATTENTION`、`EMPTY`、`INVALID` のいずれかです。`ATTENTION` は証跡・ジョブ・マニフェストのいずれかに確認事項がある状態、`INVALID` はキャンペーン結果自体を安全に読み取れない状態です。最大1,000キャンペーンまでを対象とし、DB・成果物・Bloggerは変更しません。

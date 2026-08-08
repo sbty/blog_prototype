@@ -19,6 +19,7 @@ import { ScheduleEvidencePreparationService } from "../services/scheduleEvidence
 import { ScheduleCampaignPreparationService } from "../services/scheduleCampaignPreparationService.js";
 import { ScheduleCampaignItemRecoveryService } from "../services/scheduleCampaignItemRecoveryService.js";
 import { ScheduleCampaignInspectionService } from "../services/scheduleCampaignInspectionService.js";
+import { ScheduleCampaignListService } from "../services/scheduleCampaignListService.js";
 import { SchedulePlanService } from "../services/schedulePlanService.js";
 import { ScheduleApprovalService } from "../services/scheduleApprovalService.js";
 import { ScheduleReadinessService } from "../services/scheduleReadinessService.js";
@@ -139,6 +140,12 @@ export async function main(): Promise<void> {
         logger
       ).execute(manifest);
       logger.info(result, "Batch result");
+      return;
+    }
+    if (args.command === "list-campaigns") {
+      const inspector = new ScheduleCampaignInspectionService(config, repos.jobs);
+      const result = await new ScheduleCampaignListService(config, inspector).execute();
+      logger.info(result, "Schedule campaign list result");
       return;
     }
     if (args.command === "inspect-campaign") {
@@ -343,6 +350,7 @@ Commands:
   run-schedule-batch --manifest <path>
   prepare-campaign --manifest <path>
   inspect-campaign --campaign <campaignId>
+  list-campaigns
   plan-schedule --blog <path> --article <path>
   approve-schedule --job <jobId> --confirm <jobId>
   check-schedule --job <jobId>
@@ -359,6 +367,7 @@ Run-batch executes multiple draft saves or creates multiple local schedule plans
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.
 Prepare-campaign plans, approves, previews, and packages multiple scheduled articles without publishing.
 Inspect-campaign validates campaign artifacts and reports each article action without writing state.
+List-campaigns summarizes all campaign states without writing state.
 Plan-schedule, approve-schedule, check-schedule, cancel-schedule, and prepare-execution-package are local-only and never open Blogger.
 Use open-login first when Google blocks login in an automated browser.
 `);
