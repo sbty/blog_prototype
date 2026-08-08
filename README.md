@@ -108,13 +108,32 @@ npm run dev -- save-draft --blog examples/blog.example.json --article examples/a
 
 成果物として `draft.json` と `screenshots/draft-saved.png` を保存します。次の検証をすべて通過した場合だけ、ジョブ状態を `DRAFT_SAVED` に更新します。
 
-- 保存前の同一タイトル監査で下書きが1件以下
+- 保存前の同一タイトル監査で下書きが0件
 - 保存後URLが HTTPS の Blogger 投稿編集URL
 - 保存後URLのブログIDが設定したブログIDと一致
 - 保存時刻が有効な日時
 - 保存スクリーンショットが当該ジョブの成果物ディレクトリ内に実在し、空ではない
 
 `draft.json` には保存結果に加えて `preSaveAudit` を記録します。
+
+## 複数ブログ・複数記事バッチ
+
+[`examples/batch.example.json`](examples/batch.example.json) のように、ブログ一覧と投稿記事一覧を1ファイルへまとめます。各記事の `blogKey` が投稿先ブログを指定します。入力全体を検証してから1件ずつ順番に処理し、結果を `data/jobs/<batchId>/batch-result.json` に保存します。
+
+複数の下書きを保存する場合:
+
+```env
+ENABLE_DRAFT_SAVE=true
+ENABLE_SCHEDULED_POST=false
+```
+
+```bash
+npm run dev -- run-batch --manifest examples/batch.example.json
+```
+
+`continueOnError=true` では1件の失敗後も次の記事へ進みます。`false` では残りをスキップします。STOPファイルがある場合は常に残りを停止します。
+
+予約計画を一括作成する場合は `operation` を `plan-schedules` に変更し、各記事へオフセット付きISO 8601形式の `scheduledAt` を指定します。この操作はローカル計画だけを作成し、Bloggerへ送信しません。両方の実行フラグを `false` にしてください。
 
 ## ローカル予約ワークフロー
 

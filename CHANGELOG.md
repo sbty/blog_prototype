@@ -4,8 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Added prevalidated sequential batch execution for multiple blogs and articles, with durable result reports, partial-failure handling, fail-fast mode, and STOP-aware skipping.
+
 ### Security
 
+- Prevented repeated batch runs from creating a second draft when one matching Blogger draft already exists.
 - Pinned GitHub Actions dependencies to verified full commit SHAs while retaining Dependabot version tracking.
 
 ## [0.1.1] - 2026-08-08
