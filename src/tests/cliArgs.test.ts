@@ -30,6 +30,12 @@ describe("parseArgs", () => {
       options: { campaign: "schedule-campaign-1" }
     });
   });
+  it("parses the campaign list command without options", () => {
+    expect(parseArgs(["list-campaigns"])).toEqual({
+      command: "list-campaigns",
+      options: {}
+    });
+  });
   it("parses valid command options in any order", () => {
     expect(
       parseArgs([
@@ -154,6 +160,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("run-schedule-batch")).toBe(true);
     expect(commandRequiresDatabase("prepare-campaign")).toBe(true);
     expect(commandRequiresDatabase("inspect-campaign")).toBe(true);
+    expect(commandRequiresDatabase("list-campaigns")).toBe(true);
   });
 
   it("requires the database for stateful commands", () => {

@@ -96,6 +96,7 @@ export interface CampaignInspectionItem {
 export interface ScheduleCampaignInspectionResult {
   campaignId: string;
   inspectedAt: string;
+  completedAt: string;
   reportValid: true;
   executionManifest: { present: boolean; valid: boolean; error?: string };
   retryManifest: { present: boolean; valid: boolean; error?: string };
@@ -151,6 +152,7 @@ export class ScheduleCampaignInspectionService {
     return {
       campaignId: input.campaignId,
       inspectedAt: new Date().toISOString(),
+      completedAt: report.completedAt,
       reportValid: true,
       executionManifest,
       retryManifest,
