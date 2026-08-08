@@ -78,12 +78,20 @@ function fixture(flags: { dryRun?: boolean; draft?: boolean; scheduled?: boolean
     packageSha256: sha(input.jobId === input.confirmation ? "3" : "0"),
     auditSha256: sha("4")
   }));
+  const recover = vi.fn(
+    async (input: { jobId: string; blog: BlogConfig; article: ArticleInput }) => ({
+      previewSha256: sha("5"),
+      previewConfirmationSha256: sha("6"),
+      packageSha256: sha(input.jobId && input.blog.blogKey && input.article.slug ? "7" : "0"),
+      auditSha256: sha("8")
+    })
+  );
   const service = new ScheduleCampaignPreparationService(
     config,
-    { plan, approve, prepare },
+    { plan, approve, prepare, recover },
     pino({ enabled: false })
   );
-  return { dataDir, service, plan, approve, prepare };
+  return { dataDir, service, plan, approve, prepare, recover };
 }
 
 describe("ScheduleCampaignPreparationService", () => {
@@ -133,7 +141,7 @@ describe("ScheduleCampaignPreparationService", () => {
   });
 
   it("records the failed phase and continues with later articles by default", async () => {
-    const { service, prepare } = fixture();
+    const { service, plan, prepare, recover } = fixture();
     prepare.mockRejectedValueOnce(new Error("preview failed"));
     const result = await service.execute(manifest());
 
@@ -145,6 +153,20 @@ describe("ScheduleCampaignPreparationService", () => {
     });
     expect(result.items[1].status).toBe("SUCCEEDED");
     expect(JSON.parse(readFileSync(result.executionManifestPath!, "utf8")).items).toHaveLength(1);
+    const retryManifest = JSON.parse(readFileSync(result.retryManifestPath!, "utf8"));
+    expect(retryManifest.items).toEqual([
+      {
+        blogKey: "blog-a",
+        article: article("one"),
+        resumeJobId: "job-blog-a-one"
+      }
+    ]);
+
+    const retried = await service.execute(retryManifest);
+    expect(retried.counts).toEqual({ total: 1, succeeded: 1, failed: 0, skipped: 0 });
+    expect(prepare).toHaveBeenCalledTimes(2);
+    expect(recover).toHaveBeenCalledTimes(1);
+    expect(plan).toHaveBeenCalledTimes(2);
   });
 
   it("skips remaining articles after STOP or fail-fast", async () => {

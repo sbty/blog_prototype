@@ -383,3 +383,5 @@ node dist/cli/index.js run-schedule-batch --manifest <executionManifestPath>
 ```
 
 サンプルのブログID、URL、記事、日時はすべて架空値です。実行前にローカル設定へ置き換えてください。
+
+途中失敗またはSTOPがある場合は、結果の `retryManifestPath` に `schedule-campaign-retry.json` が生成されます。同じ `prepare-campaign` コマンドへこのファイルを渡すと、計画済みの記事は既存ジョブの安全な状態から再開し、未計画の記事だけを新規計画します。既存ジョブとブログ設定・記事内容が一致しない場合や、取消済み・完了済みなど再開不能な状態では拒否されます。作成済みのプレビュー、パッケージ、監査証跡は検証して再利用されます。

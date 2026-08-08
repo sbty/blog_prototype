@@ -2,6 +2,8 @@ import { z } from "zod";
 import { blogConfigSchema } from "../config/blogConfig.js";
 import { articleInputSchema } from "./article.js";
 
+const jobIdSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/);
+
 export const scheduleCampaignManifestSchema = z
   .object({
     operation: z.literal("prepare-campaign"),
@@ -12,7 +14,8 @@ export const scheduleCampaignManifestSchema = z
         z
           .object({
             blogKey: z.string().trim().min(1).max(200),
-            article: articleInputSchema
+            article: articleInputSchema,
+            resumeJobId: jobIdSchema.optional()
           })
           .strict()
       )
@@ -34,6 +37,7 @@ export const scheduleCampaignManifestSchema = z
     });
 
     const assignments = new Set<string>();
+    const resumeJobIds = new Set<string>();
     manifest.items.forEach((item, index) => {
       if (!blogKeys.has(item.blogKey)) {
         context.addIssue({
@@ -51,6 +55,16 @@ export const scheduleCampaignManifestSchema = z
         });
       }
       assignments.add(assignment);
+      if (item.resumeJobId) {
+        if (resumeJobIds.has(item.resumeJobId)) {
+          context.addIssue({
+            code: "custom",
+            path: ["items", index, "resumeJobId"],
+            message: `Duplicate resume job: ${item.resumeJobId}`
+          });
+        }
+        resumeJobIds.add(item.resumeJobId);
+      }
       if (!item.article.scheduledAt) {
         context.addIssue({
           code: "custom",
