@@ -1,0 +1,18 @@
+{
+  "operation": "execute-schedules",
+  "continueOnError": false,
+  "items": [
+    {
+      "jobId": "schedule-example-blog-a-article-1",
+      "confirmation": "schedule-example-blog-a-article-1",
+      "packageSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "auditSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "jobId": "schedule-example-blog-b-article-2",
+      "confirmation": "schedule-example-blog-b-article-2",
+      "packageSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "auditSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ]
+}

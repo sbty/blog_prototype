@@ -59,6 +59,20 @@ const optionalBloggerBlogIdSchema = z
     message: "Expected an empty value or a numeric Blogger blog ID"
   });
 
+const bloggerBlogIdsSchema = z
+  .string()
+  .optional()
+  .default("")
+  .transform((value) => [
+    ...new Set(
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  ])
+  .pipe(z.array(z.string().regex(/^\d{10,30}$/, "Expected numeric Blogger blog IDs")).max(50));
+
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   DATABASE_PATH: localPathSchema.default("./data/app.sqlite"),
@@ -72,6 +86,7 @@ const envSchema = z.object({
   HEADLESS: boolFromString("false"),
   APP_TIMEZONE: timezoneSchema.default("Asia/Tokyo"),
   AUTHORIZED_TEST_BLOG_ID: optionalBloggerBlogIdSchema.optional().default(""),
+  AUTHORIZED_BLOG_IDS: bloggerBlogIdsSchema,
   ENABLE_AUTO_TOPIC_SELECTION: boolFromString("false"),
   ENABLE_ARTICLE_GENERATION: boolFromString("true"),
   ENABLE_IMAGE_GENERATION: boolFromString("true"),
@@ -93,4 +108,8 @@ export type AppConfig = z.infer<typeof envSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return envSchema.parse(env);
+}
+
+export function getAuthorizedBloggerBlogIds(config: AppConfig): ReadonlySet<string> {
+  return new Set([config.AUTHORIZED_TEST_BLOG_ID, ...config.AUTHORIZED_BLOG_IDS].filter(Boolean));
 }

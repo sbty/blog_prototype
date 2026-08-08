@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Logger } from "pino";
 import { BloggerDryRunClient, type ScheduledPostResult } from "../browser/bloggerDryRun.js";
 import { loadBloggerSelectors } from "../browser/bloggerSelectors.js";
-import type { AppConfig } from "../config/env.js";
+import { getAuthorizedBloggerBlogIds, type AppConfig } from "../config/env.js";
 import { articleInputSchema } from "../domain/article.js";
 import { BlogRepository } from "../repositories/blogRepository.js";
 import { JobRepository } from "../repositories/jobRepository.js";
@@ -45,12 +45,12 @@ export class ScheduledPostExecutionService {
     }
     const blog = this.repos.blogs.findConfig(job.blogKey);
     if (!blog) throw new Error("Schedule blog configuration was not found");
-    if (!this.config.AUTHORIZED_TEST_BLOG_ID) {
-      throw new Error("Schedule execution requires AUTHORIZED_TEST_BLOG_ID");
-    }
+    const authorizedBlogIds = getAuthorizedBloggerBlogIds(this.config);
+    if (authorizedBlogIds.size === 0)
+      throw new Error("Schedule execution requires AUTHORIZED_BLOG_IDS");
     const blogId = new URL(blog.adminUrl).pathname.match(/^\/blog\/posts\/(\d+)\/?$/)?.[1];
-    if (blogId !== this.config.AUTHORIZED_TEST_BLOG_ID)
-      throw new Error("Schedule execution is restricted to the dedicated test blog");
+    if (!blogId || !authorizedBlogIds.has(blogId))
+      throw new Error("Schedule execution is restricted to an authorized blog");
     const artifactDir = await realpath(job.artifactDir);
     const [planBytes, packageBytes, auditBytes] = await Promise.all([
       readArtifactFileInsideDirectory(artifactDir, "schedule-plan.json"),
@@ -94,7 +94,7 @@ export class ScheduledPostExecutionService {
       schemaVersion: 1,
       jobId: input.jobId,
       startedAt: new Date().toISOString(),
-      authorizedBlogId: this.config.AUTHORIZED_TEST_BLOG_ID,
+      authorizedBlogId: blogId,
       packageSha256: input.packageSha256,
       auditSha256: input.auditSha256,
       timezoneEvidence

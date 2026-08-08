@@ -51,6 +51,18 @@ describe("loadConfig", () => {
       );
     }
   );
+  it("parses and deduplicates the multi-blog authorization allowlist", () => {
+    const config = loadConfig({
+      AUTHORIZED_TEST_BLOG_ID: "1111111111",
+      AUTHORIZED_BLOG_IDS: "2222222222, 3333333333,2222222222"
+    });
+    expect(config.AUTHORIZED_BLOG_IDS).toEqual(["2222222222", "3333333333"]);
+  });
+  it("rejects an invalid ID in the multi-blog authorization allowlist", () => {
+    expect(() => loadConfig({ AUTHORIZED_BLOG_IDS: "2222222222,invalid" })).toThrow(
+      "Expected numeric Blogger blog IDs"
+    );
+  });
   it("rejects an invalid application timezone", () => {
     expect(() => loadConfig({ APP_TIMEZONE: "Mars/Olympus" })).toThrow(
       "Expected a valid IANA timezone"
