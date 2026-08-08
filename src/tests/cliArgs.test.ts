@@ -18,6 +18,12 @@ describe("parseArgs", () => {
       options: { manifest: "schedule-batch.json" }
     });
   });
+  it("parses a campaign preparation command", () => {
+    expect(parseArgs(["prepare-campaign", "--manifest", "campaign.json"])).toEqual({
+      command: "prepare-campaign",
+      options: { manifest: "campaign.json" }
+    });
+  });
   it("parses valid command options in any order", () => {
     expect(
       parseArgs([
@@ -140,6 +146,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("execute-schedule")).toBe(true);
     expect(commandRequiresDatabase("run-batch")).toBe(true);
     expect(commandRequiresDatabase("run-schedule-batch")).toBe(true);
+    expect(commandRequiresDatabase("prepare-campaign")).toBe(true);
   });
 
   it("requires the database for stateful commands", () => {
