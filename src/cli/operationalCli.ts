@@ -16,6 +16,7 @@ import { DraftSaveService } from "../services/draftSaveService.js";
 import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleEvidencePreparationService } from "../services/scheduleEvidencePreparationService.js";
+import { ScheduleCampaignPreparationService } from "../services/scheduleCampaignPreparationService.js";
 import { SchedulePlanService } from "../services/schedulePlanService.js";
 import { ScheduleApprovalService } from "../services/scheduleApprovalService.js";
 import { ScheduleReadinessService } from "../services/scheduleReadinessService.js";
@@ -136,6 +137,33 @@ export async function main(): Promise<void> {
         logger
       ).execute(manifest);
       logger.info(result, "Batch result");
+      return;
+    }
+    if (args.command === "prepare-campaign") {
+      const manifest = await readJsonFile<unknown>(requiredString(args.options, "manifest"));
+      const planService = new SchedulePlanService(config, repos, logger);
+      const approvalService = new ScheduleApprovalService(
+        config,
+        repos.jobs,
+        repos.articles,
+        logger
+      );
+      const preparationService = new ScheduleEvidencePreparationService(config, repos.jobs, {
+        preview: new ApprovedSchedulePreviewService(config, repos, logger),
+        confirm: new SchedulePreviewConfirmationService(config, repos.jobs, logger),
+        preparePackage: new ScheduleExecutionPackageService(config, repos.jobs, logger),
+        auditPackage: new ScheduleExecutionPackageAuditService(config, repos.jobs, logger)
+      });
+      const result = await new ScheduleCampaignPreparationService(
+        config,
+        {
+          plan: (input) => planService.execute(input),
+          approve: (input) => approvalService.execute(input),
+          prepare: (input) => preparationService.execute(input)
+        },
+        logger
+      ).execute(manifest);
+      logger.info(result, "Schedule campaign preparation result");
       return;
     }
     if (args.command === "run-schedule-batch") {
@@ -298,6 +326,7 @@ Commands:
   save-draft --blog <path> --article <path>
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
+  prepare-campaign --manifest <path>
   plan-schedule --blog <path> --article <path>
   approve-schedule --job <jobId> --confirm <jobId>
   check-schedule --job <jobId>
@@ -312,6 +341,7 @@ Dry-run opens Blogger and fills the editor only. It never saves, publishes, or c
 Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms scheduling.
 Run-batch executes multiple draft saves or creates multiple local schedule plans from one manifest.
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.
+Prepare-campaign plans, approves, previews, and packages multiple scheduled articles without publishing.
 Plan-schedule, approve-schedule, check-schedule, cancel-schedule, and prepare-execution-package are local-only and never open Blogger.
 Use open-login first when Google blocks login in an automated browser.
 `);

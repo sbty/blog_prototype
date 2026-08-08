@@ -362,3 +362,24 @@ node dist/cli/index.js run-schedule-batch --manifest examples/schedule-execution
 ```
 
 `AUTHORIZED_BLOG_IDS` は `.env` にだけ置くカンマ区切りの許可リストです。未設定、許可外ブログ、証跡不一致、STOP、実行済みジョブはいずれもBlogger操作前に拒否されます。旧 `AUTHORIZED_TEST_BLOG_ID` も移行互換として利用できます。結果は `data/jobs/<batchId>/schedule-batch-result.json` に保存されます。通常の失敗は既定で次項目へ継続し、`continueOnError: false` またはSTOPでは残りをスキップします。
+
+## キャンペーン単位の予約準備
+
+複数ブログと複数記事を1つのJSONにまとめ、予約計画、ローカル承認、ブラウザプレビュー、プレビュー確認、実行パッケージ作成、独立監査までを1コマンドで処理できます。
+
+```powershell
+$env:ENABLE_DRY_RUN='true'
+$env:ENABLE_DRAFT_SAVE='false'
+$env:ENABLE_SCHEDULED_POST='false'
+node dist/cli/index.js prepare-campaign --manifest examples/schedule-campaign.example.json
+```
+
+`prepare-campaign` 自体が、マニフェストに列挙した記事のローカル承認操作です。Bloggerの投稿保存や予約確定は行わず、ブラウザ通信の変更リクエストも遮断されます。全項目を事前検証し、通常は1記事が失敗しても後続を続けます。`continueOnError: false` またはSTOPの場合は残りをスキップします。
+
+成功した記事だけを含む `schedule-execution-batch.json` がキャンペーン結果ディレクトリへ自動生成されます。内容を確認した後、明示的に `ENABLE_SCHEDULED_POST=true` と許可ブログIDを設定し、次のコマンドへ渡すと最終実行できます。
+
+```powershell
+node dist/cli/index.js run-schedule-batch --manifest <executionManifestPath>
+```
+
+サンプルのブログID、URL、記事、日時はすべて架空値です。実行前にローカル設定へ置き換えてください。

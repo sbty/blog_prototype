@@ -1,0 +1,68 @@
+{
+  "operation": "prepare-campaign",
+  "continueOnError": true,
+  "blogs": [
+    {
+      "blogKey": "example-blog-a",
+      "displayName": "Example Blog A",
+      "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+      "publicUrl": "https://example-blog-a.invalid/",
+      "primaryTheme": "technology",
+      "dailyPostLimit": 2
+    },
+    {
+      "blogKey": "example-blog-b",
+      "displayName": "Example Blog B",
+      "adminUrl": "https://www.blogger.com/blog/posts/9876543210987654321",
+      "publicUrl": "https://example-blog-b.invalid/",
+      "primaryTheme": "travel",
+      "dailyPostLimit": 2
+    }
+  ],
+  "items": [
+    {
+      "blogKey": "example-blog-a",
+      "article": {
+        "title": "Example scheduled technology article 1",
+        "html": "<p>Replace this with the first technology article body.</p>",
+        "labels": ["technology"],
+        "searchDescription": "Example scheduled technology description 1.",
+        "slug": "scheduled-technology-article-1",
+        "scheduledAt": "2030-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "blogKey": "example-blog-b",
+      "article": {
+        "title": "Example scheduled travel article 1",
+        "html": "<p>Replace this with the first travel article body.</p>",
+        "labels": ["travel"],
+        "searchDescription": "Example scheduled travel description 1.",
+        "slug": "scheduled-travel-article-1",
+        "scheduledAt": "2030-01-01T01:00:00.000Z"
+      }
+    },
+    {
+      "blogKey": "example-blog-a",
+      "article": {
+        "title": "Example scheduled technology article 2",
+        "html": "<p>Replace this with the second technology article body.</p>",
+        "labels": ["technology"],
+        "searchDescription": "Example scheduled technology description 2.",
+        "slug": "scheduled-technology-article-2",
+        "scheduledAt": "2030-01-02T00:00:00.000Z"
+      }
+    },
+    {
+      "blogKey": "example-blog-b",
+      "article": {
+        "title": "Example scheduled travel article 2",
+        "html": "<p>Replace this with the second travel article body.</p>",
+        "labels": ["travel"],
+        "searchDescription": "Example scheduled travel description 2.",
+        "slug": "scheduled-travel-article-2",
+        "scheduledAt": "2030-01-02T01:00:00.000Z"
+      }
+    }
+  ]
+}
