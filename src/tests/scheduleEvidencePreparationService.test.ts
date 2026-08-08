@@ -7,7 +7,9 @@ import type { JobRecord } from "../domain/job.js";
 import { calculateArtifactSha256 } from "../services/scheduleApprovalIntegrity.js";
 import { ScheduleEvidencePreparationService } from "../services/scheduleEvidencePreparationService.js";
 
-function fixture(flags: { scheduled?: boolean; draft?: boolean } = {}) {
+function fixture(
+  flags: { scheduled?: boolean; draft?: boolean; status?: JobRecord["status"] } = {}
+) {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "blogger-schedule-preparation-"));
   const artifactDir = path.join(dataDir, "jobs", "job-1");
   mkdirSync(artifactDir, { recursive: true });
@@ -15,7 +17,7 @@ function fixture(flags: { scheduled?: boolean; draft?: boolean } = {}) {
     id: "job-1",
     blogKey: "blog-1",
     mode: "schedule",
-    status: "APPROVED_FOR_POST",
+    status: flags.status ?? "APPROVED_FOR_POST",
     payloadJson: "{}",
     artifactDir,
     error: null,
@@ -65,6 +67,7 @@ function fixture(flags: { scheduled?: boolean; draft?: boolean } = {}) {
   });
   return {
     dataDir,
+    artifactDir,
     service,
     stages: { preview, confirm, preparePackage, auditPackage },
     hashes: {
@@ -98,6 +101,123 @@ describe("ScheduleEvidencePreparationService", () => {
     });
   });
 
+  it("resumes a preview-confirmed job from existing package and audit evidence", async () => {
+    const { service, stages, artifactDir } = fixture({ status: "PREVIEW_CONFIRMED" });
+    const previewArtifact = {
+      jobId: "job-1",
+      readiness: {
+        jobId: "job-1",
+        checkedAt: "2026-08-01T00:01:00.000Z",
+        planSha256: "a".repeat(64),
+        localChecksPassed: true,
+        executionEnabled: false,
+        executionAuthorized: false,
+        bloggerMutationPerformed: false,
+        quota: { systemCount: 0, systemLimit: 3, blogCount: 0, blogLimit: 1 }
+      },
+      dryRun: {
+        screenshotPath: "preview.png",
+        currentUrl: "https://www.blogger.com/blog/post/edit/1111111111",
+        publishButtonVisible: true,
+        postSettings: {
+          labels: ["test"],
+          searchDescription: "description",
+          slug: "article",
+          applied: true
+        },
+        schedulePreview: {
+          scheduledAt: "2026-08-20T00:00:00.000Z",
+          date: "2026/08/20",
+          time: "09:00",
+          timezone: "Asia/Tokyo"
+        },
+        networkGuard: {
+          blockedMutationRequests: 0,
+          blockedRequests: [],
+          blockedRequestLogTruncated: false
+        }
+      },
+      bloggerMutationPerformed: false,
+      executionAuthorized: false,
+      evidence: {
+        previewedAt: "2026-08-01T00:02:00.000Z",
+        planSha256: "a".repeat(64),
+        approvalSha256: "b".repeat(64),
+        screenshotSha256: "c".repeat(64)
+      }
+    };
+    const previewText = JSON.stringify(previewArtifact, null, 2);
+    const previewSha256 = calculateArtifactSha256(previewText);
+    const confirmationText = JSON.stringify(
+      {
+        artifactType: "schedule-preview-confirmation",
+        schemaVersion: 1,
+        jobId: "job-1",
+        confirmedAt: "2026-08-01T00:03:00.000Z",
+        previewSha256,
+        confirmationMatched: true,
+        executionEnabled: false,
+        executionAuthorized: false,
+        bloggerMutationPerformed: false
+      },
+      null,
+      2
+    );
+    const previewConfirmationSha256 = calculateArtifactSha256(confirmationText);
+    const packageText = JSON.stringify(
+      {
+        artifactType: "schedule-execution-package",
+        schemaVersion: 1,
+        jobId: "job-1",
+        preparedAt: "2026-08-01T00:04:00.000Z",
+        evidence: {
+          planSha256: "a".repeat(64),
+          approvalSha256: "b".repeat(64),
+          previewSha256,
+          previewConfirmationSha256,
+          screenshotSha256: "c".repeat(64)
+        },
+        evidenceChainValid: true,
+        executionEnabled: false,
+        executionAuthorized: false,
+        bloggerMutationPerformed: false,
+        requiresExternalExecutionImplementation: true
+      },
+      null,
+      2
+    );
+    const packageSha256 = calculateArtifactSha256(packageText);
+    const auditText = JSON.stringify(
+      {
+        artifactType: "schedule-execution-package-audit",
+        schemaVersion: 1,
+        jobId: "job-1",
+        auditedAt: "2026-08-01T00:05:00.000Z",
+        packageSha256,
+        evidenceChainValid: true,
+        executionEnabled: false,
+        executionAuthorized: false,
+        bloggerMutationPerformed: false
+      },
+      null,
+      2
+    );
+    writeFileSync(path.join(artifactDir, "schedule-browser-preview.json"), previewText);
+    writeFileSync(path.join(artifactDir, "schedule-preview-confirmation.json"), confirmationText);
+    writeFileSync(path.join(artifactDir, "schedule-execution-package.json"), packageText);
+    writeFileSync(path.join(artifactDir, "schedule-execution-package-audit.json"), auditText);
+
+    await expect(service.execute({ jobId: "job-1", confirmation: "job-1" })).resolves.toEqual({
+      previewSha256,
+      previewConfirmationSha256,
+      packageSha256,
+      auditSha256: calculateArtifactSha256(auditText)
+    });
+    expect(stages.preview.execute).not.toHaveBeenCalled();
+    expect(stages.confirm.execute).not.toHaveBeenCalled();
+    expect(stages.preparePackage.execute).not.toHaveBeenCalled();
+    expect(stages.auditPackage.execute).not.toHaveBeenCalled();
+  });
   it("stops between stages before consuming newly written evidence", async () => {
     const { dataDir, service, stages } = fixture();
     stages.confirm.execute.mockImplementationOnce(async () => {

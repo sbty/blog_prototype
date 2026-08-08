@@ -21,7 +21,7 @@ export interface ScheduleCampaignItemResult {
   status: "SUCCEEDED" | "FAILED" | "SKIPPED";
   jobId?: string;
   evidence?: SchedulePreparationEvidence;
-  failedPhase?: "PLAN" | "APPROVAL" | "PREPARATION";
+  failedPhase?: "PLAN" | "APPROVAL" | "PREPARATION" | "RECOVERY";
   error?: string;
 }
 
@@ -31,6 +31,7 @@ export interface ScheduleCampaignPreparationResult {
   artifactDir: string;
   reportPath: string;
   executionManifestPath?: string;
+  retryManifestPath?: string;
   startedAt: string;
   completedAt: string;
   counts: { total: number; succeeded: number; failed: number; skipped: number };
@@ -46,6 +47,11 @@ export class ScheduleCampaignPreparationService {
       prepare: (input: {
         jobId: string;
         confirmation: string;
+      }) => Promise<SchedulePreparationEvidence>;
+      recover: (input: {
+        jobId: string;
+        blog: BlogConfig;
+        article: ArticleInput;
       }) => Promise<SchedulePreparationEvidence>;
     },
     private readonly logger: Logger
@@ -69,15 +75,26 @@ export class ScheduleCampaignPreparationService {
       let phase: ScheduleCampaignItemResult["failedPhase"] = "PLAN";
       try {
         await assertNotStopped(this.config.DATA_DIR);
-        const planned = await this.stages.plan({
-          blog: blogs.get(item.blogKey)!,
-          article: item.article
-        });
-        jobId = planned.jobId;
-        phase = "APPROVAL";
-        await this.stages.approve({ jobId, confirmation: jobId });
-        phase = "PREPARATION";
-        const evidence = await this.stages.prepare({ jobId, confirmation: jobId });
+        let evidence: SchedulePreparationEvidence;
+        if (item.resumeJobId) {
+          jobId = item.resumeJobId;
+          phase = "RECOVERY";
+          evidence = await this.stages.recover({
+            jobId,
+            blog: blogs.get(item.blogKey)!,
+            article: item.article
+          });
+        } else {
+          const planned = await this.stages.plan({
+            blog: blogs.get(item.blogKey)!,
+            article: item.article
+          });
+          jobId = planned.jobId;
+          phase = "APPROVAL";
+          await this.stages.approve({ jobId, confirmation: jobId });
+          phase = "PREPARATION";
+          evidence = await this.stages.prepare({ jobId, confirmation: jobId });
+        }
         results.push({
           index,
           blogKey: item.blogKey,
@@ -143,12 +160,33 @@ export class ScheduleCampaignPreparationService {
       });
     }
 
+    const retryItems = results.flatMap((resultItem) => {
+      if (resultItem.status === "SUCCEEDED") return [];
+      const original = manifest.items[resultItem.index];
+      return [
+        {
+          ...original,
+          ...(resultItem.jobId ? { resumeJobId: resultItem.jobId } : {})
+        }
+      ];
+    });
+    let retryManifestPath: string | undefined;
+    if (retryItems.length > 0) {
+      retryManifestPath = path.join(artifactDir, "schedule-campaign-retry.json");
+      await writeJsonArtifactAtomic(retryManifestPath, {
+        operation: "prepare-campaign",
+        continueOnError: manifest.continueOnError,
+        blogs: manifest.blogs,
+        items: retryItems
+      });
+    }
     const result: ScheduleCampaignPreparationResult = {
       campaignId,
       operation: manifest.operation,
       artifactDir,
       reportPath,
       ...(executionManifestPath ? { executionManifestPath } : {}),
+      ...(retryManifestPath ? { retryManifestPath } : {}),
       startedAt,
       completedAt: new Date().toISOString(),
       counts: {
@@ -161,7 +199,7 @@ export class ScheduleCampaignPreparationService {
     };
     await writeJsonArtifactAtomic(reportPath, result);
     this.logger.info(
-      { campaignId, counts: result.counts, reportPath, executionManifestPath },
+      { campaignId, counts: result.counts, reportPath, executionManifestPath, retryManifestPath },
       "Schedule campaign preparation completed"
     );
     return result;

@@ -17,6 +17,7 @@ import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleEvidencePreparationService } from "../services/scheduleEvidencePreparationService.js";
 import { ScheduleCampaignPreparationService } from "../services/scheduleCampaignPreparationService.js";
+import { ScheduleCampaignItemRecoveryService } from "../services/scheduleCampaignItemRecoveryService.js";
 import { SchedulePlanService } from "../services/schedulePlanService.js";
 import { ScheduleApprovalService } from "../services/scheduleApprovalService.js";
 import { ScheduleReadinessService } from "../services/scheduleReadinessService.js";
@@ -154,12 +155,17 @@ export async function main(): Promise<void> {
         preparePackage: new ScheduleExecutionPackageService(config, repos.jobs, logger),
         auditPackage: new ScheduleExecutionPackageAuditService(config, repos.jobs, logger)
       });
+      const recoveryService = new ScheduleCampaignItemRecoveryService(repos, {
+        approve: (input) => approvalService.execute(input),
+        prepare: (input) => preparationService.execute(input)
+      });
       const result = await new ScheduleCampaignPreparationService(
         config,
         {
           plan: (input) => planService.execute(input),
           approve: (input) => approvalService.execute(input),
-          prepare: (input) => preparationService.execute(input)
+          prepare: (input) => preparationService.execute(input),
+          recover: (input) => recoveryService.execute(input)
         },
         logger
       ).execute(manifest);
