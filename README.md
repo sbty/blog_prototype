@@ -7,6 +7,7 @@
 このリリースは、ローカルで明示的に設定した専用Bloggerテストブログだけを対象とします。追加のBlogger実操作、無人公開、本番運用を許可するものではありません。
 
 - [開発・PR手順](CONTRIBUTING.md)
+- [変更履歴](CHANGELOG.md)
 - [セキュリティーポリシーと非公開報告](SECURITY.md)
 - [Code scanning](https://github.com/sbty/blog_prototype/security/code-scanning)
 
