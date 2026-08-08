@@ -343,7 +343,16 @@ $env:ENABLE_SCHEDULED_POST='false'
 node dist/cli/index.js run-schedule-batch --manifest examples/schedule-approval-batch.example.json
 ```
 
-ブラウザプレビュー、プレビュー確認、実行パッケージ作成、独立監査を各ジョブで完了した後、実際のSHA-256を実行マニフェストへ設定して一括実行できます。バッチ処理はこれらの証跡を省略しません。
+承認後は、ブラウザプレビュー、プレビュー確認、実行パッケージ作成、独立監査の4段階を一括実行できます。この操作はBloggerの保存・公開を行いません。各段階で生成したSHA-256は自動的に次段階へ渡され、成功したジョブだけを含む `schedule-execution-batch.json` が結果ディレクトリに生成されます。
+
+```powershell
+$env:ENABLE_DRY_RUN='true'
+$env:ENABLE_DRAFT_SAVE='false'
+$env:ENABLE_SCHEDULED_POST='false'
+node dist/cli/index.js run-schedule-batch --manifest examples/schedule-preparation-batch.example.json
+```
+
+準備結果の `executionManifestPath` に表示されたファイルを、そのまま次の一括実行へ指定できます。SHA-256の手入力は不要で、既存の証跡検証も省略しません。
 
 ```powershell
 $env:AUTHORIZED_BLOG_IDS='1111111111111111111,2222222222222222222'

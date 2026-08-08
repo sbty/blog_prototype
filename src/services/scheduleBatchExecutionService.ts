@@ -8,11 +8,13 @@ import {
 } from "../domain/scheduleBatch.js";
 import { assertNotStopped, StopRequestedError } from "../system/stop.js";
 import { createArtifactDir, makeJobId, writeJsonArtifactAtomic } from "./artifacts.js";
+import type { SchedulePreparationEvidence } from "./scheduleEvidencePreparationService.js";
 
 export interface ScheduleBatchItemResult {
   index: number;
   jobId: string;
   status: "SUCCEEDED" | "FAILED" | "SKIPPED";
+  evidence?: SchedulePreparationEvidence;
   error?: string;
 }
 
@@ -21,6 +23,7 @@ export interface ScheduleBatchExecutionResult {
   operation: ScheduleBatchManifest["operation"];
   artifactDir: string;
   reportPath: string;
+  executionManifestPath?: string;
   startedAt: string;
   completedAt: string;
   counts: { total: number; succeeded: number; failed: number; skipped: number };
@@ -30,6 +33,10 @@ export interface ScheduleBatchExecutionResult {
 type ApprovalItem = Extract<
   ScheduleBatchManifest,
   { operation: "approve-schedules" }
+>["items"][number];
+type PreparationItem = Extract<
+  ScheduleBatchManifest,
+  { operation: "prepare-schedules" }
 >["items"][number];
 type ExecutionItem = Extract<
   ScheduleBatchManifest,
@@ -41,6 +48,7 @@ export class ScheduleBatchExecutionService {
     private readonly config: AppConfig,
     private readonly executors: {
       approve: (input: ApprovalItem) => Promise<unknown>;
+      prepare: (input: PreparationItem) => Promise<SchedulePreparationEvidence>;
       execute: (input: ExecutionItem) => Promise<unknown>;
     },
     private readonly logger: Logger
@@ -61,8 +69,13 @@ export class ScheduleBatchExecutionService {
       const item = manifest.items[index];
       try {
         await assertNotStopped(this.config.DATA_DIR);
-        await this.executeItem(manifest.operation, item);
-        results.push({ index, jobId: item.jobId, status: "SUCCEEDED" });
+        const evidence = await this.executeItem(manifest.operation, item);
+        results.push({
+          index,
+          jobId: item.jobId,
+          status: "SUCCEEDED",
+          ...(evidence ? { evidence } : {})
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         results.push({ index, jobId: item.jobId, status: "FAILED", error: message });
@@ -84,11 +97,35 @@ export class ScheduleBatchExecutionService {
       }
     }
 
+    let executionManifestPath: string | undefined;
+    if (manifest.operation === "prepare-schedules") {
+      const preparedItems = results.flatMap((item) =>
+        item.status === "SUCCEEDED" && item.evidence
+          ? [
+              {
+                jobId: item.jobId,
+                confirmation: item.jobId,
+                packageSha256: item.evidence.packageSha256,
+                auditSha256: item.evidence.auditSha256
+              }
+            ]
+          : []
+      );
+      if (preparedItems.length > 0) {
+        executionManifestPath = path.join(artifactDir, "schedule-execution-batch.json");
+        await writeJsonArtifactAtomic(executionManifestPath, {
+          operation: "execute-schedules",
+          continueOnError: manifest.continueOnError,
+          items: preparedItems
+        });
+      }
+    }
     const result: ScheduleBatchExecutionResult = {
       batchId,
       operation: manifest.operation,
       artifactDir,
       reportPath,
+      ...(executionManifestPath ? { executionManifestPath } : {}),
       startedAt,
       completedAt: new Date().toISOString(),
       counts: {
@@ -107,21 +144,30 @@ export class ScheduleBatchExecutionService {
     return result;
   }
 
-  private executeItem(
+  private async executeItem(
     operation: ScheduleBatchManifest["operation"],
     item: ScheduleBatchItem
-  ): Promise<unknown> {
-    return operation === "approve-schedules"
-      ? this.executors.approve(item as ApprovalItem)
-      : this.executors.execute(item as ExecutionItem);
+  ): Promise<SchedulePreparationEvidence | undefined> {
+    if (operation === "approve-schedules") {
+      await this.executors.approve(item as ApprovalItem);
+      return undefined;
+    }
+    if (operation === "prepare-schedules") {
+      return this.executors.prepare(item as PreparationItem);
+    }
+    await this.executors.execute(item as ExecutionItem);
+    return undefined;
   }
 
   private assertOperationEnabled(operation: ScheduleBatchManifest["operation"]): void {
-    if (operation === "approve-schedules") {
+    if (operation !== "execute-schedules") {
       if (this.config.ENABLE_DRAFT_SAVE || this.config.ENABLE_SCHEDULED_POST) {
         throw new Error(
-          "Batch schedule approval requires ENABLE_DRAFT_SAVE=false and ENABLE_SCHEDULED_POST=false"
+          "Batch schedule approval and preparation require ENABLE_DRAFT_SAVE=false and ENABLE_SCHEDULED_POST=false"
         );
+      }
+      if (operation === "prepare-schedules" && !this.config.ENABLE_DRY_RUN) {
+        throw new Error("Batch schedule preparation requires ENABLE_DRY_RUN=true");
       }
       return;
     }

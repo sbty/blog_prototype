@@ -26,6 +26,13 @@ export const scheduleBatchManifestSchema = z
       .strict(),
     z
       .object({
+        operation: z.literal("prepare-schedules"),
+        continueOnError: z.boolean().default(true),
+        items: z.array(approvalItemSchema).min(1).max(500)
+      })
+      .strict(),
+    z
+      .object({
         operation: z.literal("execute-schedules"),
         continueOnError: z.boolean().default(true),
         items: z.array(executionItemSchema).min(1).max(500)
