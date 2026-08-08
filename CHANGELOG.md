@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
-No changes yet.
+### Security
+
+- Pinned GitHub Actions dependencies to verified full commit SHAs while retaining Dependabot version tracking.
 
 ## [0.1.1] - 2026-08-08
 
