@@ -18,6 +18,7 @@ import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutio
 import { ScheduleEvidencePreparationService } from "../services/scheduleEvidencePreparationService.js";
 import { ScheduleCampaignPreparationService } from "../services/scheduleCampaignPreparationService.js";
 import { ScheduleCampaignItemRecoveryService } from "../services/scheduleCampaignItemRecoveryService.js";
+import { ScheduleCampaignInspectionService } from "../services/scheduleCampaignInspectionService.js";
 import { SchedulePlanService } from "../services/schedulePlanService.js";
 import { ScheduleApprovalService } from "../services/scheduleApprovalService.js";
 import { ScheduleReadinessService } from "../services/scheduleReadinessService.js";
@@ -138,6 +139,14 @@ export async function main(): Promise<void> {
         logger
       ).execute(manifest);
       logger.info(result, "Batch result");
+      return;
+    }
+    if (args.command === "inspect-campaign") {
+      const campaignId = requiredString(args.options, "campaign");
+      const result = await new ScheduleCampaignInspectionService(config, repos.jobs).execute({
+        campaignId
+      });
+      logger.info(result, "Schedule campaign inspection result");
       return;
     }
     if (args.command === "prepare-campaign") {
@@ -333,6 +342,7 @@ Commands:
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
   prepare-campaign --manifest <path>
+  inspect-campaign --campaign <campaignId>
   plan-schedule --blog <path> --article <path>
   approve-schedule --job <jobId> --confirm <jobId>
   check-schedule --job <jobId>
@@ -348,6 +358,7 @@ Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms 
 Run-batch executes multiple draft saves or creates multiple local schedule plans from one manifest.
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.
 Prepare-campaign plans, approves, previews, and packages multiple scheduled articles without publishing.
+Inspect-campaign validates campaign artifacts and reports each article action without writing state.
 Plan-schedule, approve-schedule, check-schedule, cancel-schedule, and prepare-execution-package are local-only and never open Blogger.
 Use open-login first when Google blocks login in an automated browser.
 `);

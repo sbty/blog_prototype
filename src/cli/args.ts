@@ -20,6 +20,7 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
   "run-batch": { options: ["manifest"], requiresDatabase: true },
   "run-schedule-batch": { options: ["manifest"], requiresDatabase: true },
   "prepare-campaign": { options: ["manifest"], requiresDatabase: true },
+  "inspect-campaign": { options: ["campaign"], requiresDatabase: true },
   "plan-schedule": { options: ["blog", "article"], requiresDatabase: true },
   "approve-schedule": { options: ["job", "confirm"], requiresDatabase: true },
   "check-schedule": { options: ["job"], requiresDatabase: true },

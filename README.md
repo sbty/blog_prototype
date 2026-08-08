@@ -385,3 +385,13 @@ node dist/cli/index.js run-schedule-batch --manifest <executionManifestPath>
 サンプルのブログID、URL、記事、日時はすべて架空値です。実行前にローカル設定へ置き換えてください。
 
 途中失敗またはSTOPがある場合は、結果の `retryManifestPath` に `schedule-campaign-retry.json` が生成されます。同じ `prepare-campaign` コマンドへこのファイルを渡すと、計画済みの記事は既存ジョブの安全な状態から再開し、未計画の記事だけを新規計画します。既存ジョブとブログ設定・記事内容が一致しない場合や、取消済み・完了済みなど再開不能な状態では拒否されます。作成済みのプレビュー、パッケージ、監査証跡は検証して再利用されます。
+
+## キャンペーン状態の検査
+
+`prepare-campaign` の結果に表示された `campaignId` を指定すると、DBやBloggerを書き換えずに現在の状態を検査できます。
+
+```powershell
+node dist/cli/index.js inspect-campaign --campaign <campaignId>
+```
+
+各記事は `READY_TO_EXECUTE`、`RETRY_AVAILABLE`、`EXECUTED`、`EVIDENCE_INVALID`、`JOB_MISSING`、`JOB_STATE_INVALID`、`NEEDS_ATTENTION` のいずれかに分類されます。キャンペーン結果の件数、実行用JSON、再試行用JSON、ジョブID、パッケージ・監査SHA、実行結果JSONも照合します。このコマンドはSTOP中でも利用できる読み取り専用診断です。
