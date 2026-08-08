@@ -41,6 +41,6 @@ These items are not release defects. They are deliberately excluded capabilities
 ## Version-control and release handoff
 
 - The source is committed to the protected `main` branch of `sbty/blog_prototype`; changes require a pull request and successful required checks.
-- [`v0.1.0`](https://github.com/sbty/blog_prototype/releases/tag/v0.1.0) is a guarded prerelease snapshot of the completed dedicated-test-blog acceptance scope. Later repository-hardening changes do not expand Blogger execution authority.
-- Promoting a stable release is a separate maintainer decision. Review the current release scope, successful CI and code-scanning results, and the exclusions above before promotion.
+- [`v0.1.0`](https://github.com/sbty/blog_prototype/releases/tag/v0.1.0) is the guarded stable release snapshot of the completed dedicated-test-blog acceptance scope. Later repository-hardening changes do not expand Blogger execution authority.
+- Any future release or scope expansion is a separate maintainer decision. Review the current release scope, successful CI and code-scanning results, and the exclusions above before publishing it.
 - `.env`, `data`, `dist`, and `node_modules` remain ignored and must not be committed. Local evidence and credentials remain outside version control.
