@@ -38,6 +38,9 @@ The locally configured dedicated test blog has accepted the guarded draft-save w
 
 These items are not release defects. They are deliberately excluded capabilities and require separate authorization and acceptance criteria.
 
-## Version-control handoff
+## Version-control and release handoff
 
-The working tree has not been staged or committed by this process. Review the complete initial file set, then create a version-control snapshot separately if desired. Do not include `.env`, `data`, `dist`, or `node_modules`.
+- The source is committed to the protected `main` branch of `sbty/blog_prototype`; changes require a pull request and successful required checks.
+- [`v0.1.0`](https://github.com/sbty/blog_prototype/releases/tag/v0.1.0) is a guarded prerelease snapshot of the completed dedicated-test-blog acceptance scope. Later repository-hardening changes do not expand Blogger execution authority.
+- Promoting a stable release is a separate maintainer decision. Review the current release scope, successful CI and code-scanning results, and the exclusions above before promotion.
+- `.env`, `data`, `dist`, and `node_modules` remain ignored and must not be committed. Local evidence and credentials remain outside version control.
