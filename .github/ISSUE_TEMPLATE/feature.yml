@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a scoped improvement and identify any Blogger execution impact.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem should this change solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest useful change and its acceptance criteria.
+    validations:
+      required: true
+  - type: dropdown
+    id: mutation_scope
+    attributes:
+      label: Blogger mutation impact
+      description: Does this proposal add or expand save, schedule, publish, repair, rename, or delete behavior?
+      options:
+        - No Blogger mutation impact
+        - Changes an existing guarded mutation path
+        - Adds or expands mutation scope
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and rollback
+      description: For mutation-impacting requests, describe authorization, fail-closed behavior, evidence, duplicate protection, STOP handling, and rollback.

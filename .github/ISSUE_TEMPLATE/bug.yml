@@ -1,0 +1,44 @@
+name: Bug report
+description: Report reproducible incorrect behavior without exposing private Blogger data.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, cookies, real blog IDs, unpublished content, or local evidence files. Use placeholders and redact logs.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest safe reproduction using fake identifiers and non-sensitive data.
+      placeholder: |
+        1. Set mutation flags to false.
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, Node.js version, package version or commit, and the command used.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed credentials, cookies, real blog IDs, unpublished content, and local evidence from this report.
+          required: true
+        - label: This report does not request or authorize a Blogger mutation.
+          required: true
