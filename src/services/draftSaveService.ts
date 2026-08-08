@@ -13,7 +13,7 @@ import { BlogRepository } from "../repositories/blogRepository.js";
 import { JobRepository } from "../repositories/jobRepository.js";
 import { assertNotStopped, StopRequestedError } from "../system/stop.js";
 import { createArtifactDir, makeJobId, writeJobArtifacts } from "./artifacts.js";
-import { assertNoDuplicateDrafts } from "./draftAuditValidation.js";
+import { assertNoExistingDraft } from "./draftAuditValidation.js";
 import { validateDraftSaveEvidence, validateDraftSaveResult } from "./draftSaveValidation.js";
 
 interface DraftClient {
@@ -75,7 +75,7 @@ export class DraftSaveService {
         ...input.article
       });
       const client = await this.clientFactory(input.blog);
-      const preSaveAudit = assertNoDuplicateDrafts(
+      const preSaveAudit = assertNoExistingDraft(
         await client.findDrafts({
           adminUrl: input.blog.adminUrl,
           title: input.article.title
@@ -94,8 +94,8 @@ export class DraftSaveService {
           article: input.article,
           artifactDir,
           assertCanMutate: () => assertNotStopped(this.config.DATA_DIR)
-        })
-        , {
+        }),
+        {
           adminUrl: input.blog.adminUrl,
           postEditorUrl: input.blog.blogger.postEditorUrl
         }

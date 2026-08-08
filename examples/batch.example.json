@@ -1,0 +1,62 @@
+{
+  "operation": "save-drafts",
+  "continueOnError": true,
+  "blogs": [
+    {
+      "blogKey": "example-blog-a",
+      "displayName": "Example Blog A",
+      "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+      "primaryTheme": "technology",
+      "dailyPostLimit": 2
+    },
+    {
+      "blogKey": "example-blog-b",
+      "displayName": "Example Blog B",
+      "adminUrl": "https://www.blogger.com/blog/posts/9876543210987654321",
+      "primaryTheme": "travel",
+      "dailyPostLimit": 2
+    }
+  ],
+  "items": [
+    {
+      "blogKey": "example-blog-a",
+      "article": {
+        "title": "Example technology article 1",
+        "html": "<p>Replace this with the first article body.</p>",
+        "labels": ["technology"],
+        "searchDescription": "Example description for technology article 1.",
+        "slug": "technology-article-1"
+      }
+    },
+    {
+      "blogKey": "example-blog-a",
+      "article": {
+        "title": "Example technology article 2",
+        "html": "<p>Replace this with the second article body.</p>",
+        "labels": ["technology"],
+        "searchDescription": "Example description for technology article 2.",
+        "slug": "technology-article-2"
+      }
+    },
+    {
+      "blogKey": "example-blog-b",
+      "article": {
+        "title": "Example travel article 1",
+        "html": "<p>Replace this with the first travel article body.</p>",
+        "labels": ["travel"],
+        "searchDescription": "Example description for travel article 1.",
+        "slug": "travel-article-1"
+      }
+    },
+    {
+      "blogKey": "example-blog-b",
+      "article": {
+        "title": "Example travel article 2",
+        "html": "<p>Replace this with the second travel article body.</p>",
+        "labels": ["travel"],
+        "searchDescription": "Example description for travel article 2.",
+        "slug": "travel-article-2"
+      }
+    }
+  ]
+}

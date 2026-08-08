@@ -65,10 +65,7 @@ describe("DraftSaveService", () => {
     const saveDraft = vi.fn().mockImplementation(async (input) => {
       const screenshotPath = path.join(input.artifactDir, "screenshots", "draft.png");
       mkdirSync(path.dirname(screenshotPath), { recursive: true });
-      writeFileSync(
-        screenshotPath,
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-      );
+      writeFileSync(screenshotPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
       return {
         screenshotPath,
         currentUrl: "https://www.blogger.com/blog/post/edit/1/2",
@@ -136,6 +133,23 @@ describe("DraftSaveService", () => {
 
     await expect(service.execute({ blog, article })).rejects.toThrow(
       "Duplicate Blogger drafts detected"
+    );
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+  it("refuses to create a second draft when one matching draft already exists", async () => {
+    const { config, repos } = fixture();
+    const saveDraft = vi.fn();
+    const service = new DraftSaveService(config, repos, pino({ enabled: false }), async () => ({
+      findDrafts: async () => ({
+        title: article.title,
+        editUrls: ["https://www.blogger.com/blog/post/edit/1/10"],
+        count: 1
+      }),
+      saveDraft
+    }));
+
+    await expect(service.execute({ blog, article })).rejects.toThrow(
+      "A Blogger draft already exists"
     );
     expect(saveDraft).not.toHaveBeenCalled();
   });

@@ -12,3 +12,12 @@ export function assertNoDuplicateDrafts(audit: DraftAuditResult): DraftAuditResu
   }
   return audit;
 }
+export function assertNoExistingDraft(audit: DraftAuditResult): DraftAuditResult {
+  const validated = assertNoDuplicateDrafts(audit);
+  if (validated.count > 0) {
+    throw new Error(
+      `A Blogger draft already exists for title "${validated.title}": ${validated.editUrls[0]}`
+    );
+  }
+  return validated;
+}
