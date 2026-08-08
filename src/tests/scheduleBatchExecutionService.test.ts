@@ -20,6 +20,12 @@ function fixture(flags: { scheduled?: boolean; draft?: boolean } = {}) {
   const approve = vi.fn(async (input: { jobId: string; confirmation: string }) => ({
     approved: input.confirmation === input.jobId
   }));
+  const prepare = vi.fn(async (input: { jobId: string; confirmation: string }) => ({
+    previewSha256: sha(input.jobId === input.confirmation ? "1" : "0"),
+    previewConfirmationSha256: sha("2"),
+    packageSha256: sha("3"),
+    auditSha256: sha("4")
+  }));
   const execute = vi.fn(
     async (input: {
       jobId: string;
@@ -30,10 +36,10 @@ function fixture(flags: { scheduled?: boolean; draft?: boolean } = {}) {
   );
   const service = new ScheduleBatchExecutionService(
     config,
-    { approve, execute },
+    { approve, prepare, execute },
     pino({ enabled: false })
   );
-  return { dataDir, service, approve, execute };
+  return { dataDir, service, approve, prepare, execute };
 }
 
 function approval(jobId: string) {
@@ -66,6 +72,61 @@ describe("ScheduleBatchExecutionService", () => {
     });
   });
 
+  it("prepares preview, confirmation, package, and audit evidence for multiple jobs", async () => {
+    const { service, prepare } = fixture();
+    const result = await service.run({
+      operation: "prepare-schedules",
+      items: [approval("job-1"), approval("job-2")]
+    });
+
+    expect(prepare).toHaveBeenCalledTimes(2);
+    expect(result.executionManifestPath).toBeDefined();
+    expect(JSON.parse(readFileSync(result.executionManifestPath!, "utf8"))).toEqual({
+      operation: "execute-schedules",
+      continueOnError: true,
+      items: [
+        {
+          jobId: "job-1",
+          confirmation: "job-1",
+          packageSha256: sha("3"),
+          auditSha256: sha("4")
+        },
+        {
+          jobId: "job-2",
+          confirmation: "job-2",
+          packageSha256: sha("3"),
+          auditSha256: sha("4")
+        }
+      ]
+    });
+    expect(result.items[0]).toMatchObject({
+      status: "SUCCEEDED",
+      evidence: {
+        previewSha256: sha("1"),
+        previewConfirmationSha256: sha("2"),
+        packageSha256: sha("3"),
+        auditSha256: sha("4")
+      }
+    });
+  });
+  it("generates an execution manifest containing only successfully prepared jobs", async () => {
+    const { service, prepare } = fixture();
+    prepare.mockRejectedValueOnce(new Error("preview failed"));
+    const result = await service.run({
+      operation: "prepare-schedules",
+      items: [approval("job-1"), approval("job-2")]
+    });
+
+    expect(result.items.map((item) => item.status)).toEqual(["FAILED", "SUCCEEDED"]);
+    expect(JSON.parse(readFileSync(result.executionManifestPath!, "utf8")).items).toEqual([
+      {
+        jobId: "job-2",
+        confirmation: "job-2",
+        packageSha256: sha("3"),
+        auditSha256: sha("4")
+      }
+    ]);
+  });
   it("executes multiple jobs with their individual evidence hashes", async () => {
     const { service, execute } = fixture({ scheduled: true });
     const result = await service.run({

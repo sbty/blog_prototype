@@ -1,0 +1,14 @@
+{
+  "operation": "prepare-schedules",
+  "continueOnError": true,
+  "items": [
+    {
+      "jobId": "schedule-example-blog-a-article-1",
+      "confirmation": "schedule-example-blog-a-article-1"
+    },
+    {
+      "jobId": "schedule-example-blog-b-article-2",
+      "confirmation": "schedule-example-blog-b-article-2"
+    }
+  ]
+}
