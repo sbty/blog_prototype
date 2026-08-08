@@ -6,6 +6,26 @@ All notable changes to this project are documented in this file.
 
 No changes yet.
 
+## [0.1.1] - 2026-08-08
+
+### Added
+
+- Structured bug and feature request forms that require redaction and classify Blogger mutation impact.
+- Node.js 24 LTS compatibility verification alongside the required Node.js 22 LTS safety gate.
+- Repository status links, release handoff documentation, and a maintained changelog.
+
+### Changed
+
+- Updated Playwright, TypeScript ESLint, better-sqlite3, ESLint, tsx, and better-sqlite3 type definitions within their supported ranges.
+- Updated dotenv to 17.4.2, pino to 10.3.1, and zod to 4.4.3 with explicit nested configuration defaults.
+- Declared support for Node.js 22 LTS and 24 LTS.
+- Deferred TypeScript 7 until it is supported by typescript-eslint, and kept Node type definitions aligned with the Node.js 22 baseline.
+
+### Security
+
+- Preserved default-off Blogger mutation flags, fail-closed validation, log redaction, required CI, CodeQL, dependency auditing, and the dedicated-test-blog execution boundary.
+- This release performs no Blogger mutation and grants no additional save, schedule, publish, repair, rename, or delete authority.
+
 ## [0.1.0] - 2026-08-08
 
 ### Added
@@ -27,4 +47,5 @@ No changes yet.
 - This release does not authorize another Blogger mutation, another blog, unattended publishing, production rollout, or unbounded retries.
 - Expanding the execution scope requires explicit authorization, separate acceptance criteria, a safety review, and an ADR.
 
+[0.1.1]: https://github.com/sbty/blog_prototype/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/sbty/blog_prototype/releases/tag/v0.1.0
