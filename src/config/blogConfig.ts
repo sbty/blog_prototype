@@ -37,20 +37,25 @@ export const blogConfigSchema = z.object({
       seasonalRatio: z.number().min(0).max(1).default(0.1),
       newsRatio: z.number().min(0).max(1).default(0.1)
     })
-    .default({}),
+    .default({
+      evergreenRatio: 0.55,
+      durableExplainerRatio: 0.25,
+      seasonalRatio: 0.1,
+      newsRatio: 0.1
+    }),
   targetLength: z
     .object({
       min: z.number().int().positive().default(3000),
       max: z.number().int().positive().default(5000)
     })
-    .default({}),
+    .default({ min: 3000, max: 5000 }),
   dailyPostLimit: z.number().int().positive().default(1),
   blogger: z
     .object({
       selectorsPath: z.string().default("./config/blogger-selectors.json"),
       postEditorUrl: bloggerHttpsUrlSchema.optional()
     })
-    .default({})
+    .default({ selectorsPath: "./config/blogger-selectors.json" })
 }).superRefine((config, context) => {
   if (config.targetLength.min > config.targetLength.max) {
     context.addIssue({
