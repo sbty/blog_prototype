@@ -30,3 +30,20 @@ jobs:
       - run: npm ci
       - run: npm run audit:dependencies
       - run: npm run verify:local-complete
+
+  node24-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ENABLE_DRAFT_SAVE: "false"
+      ENABLE_SCHEDULED_POST: "false"
+      AUTHORIZED_TEST_BLOG_ID: ""
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run audit:dependencies
+      - run: npm run verify:local-complete

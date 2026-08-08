@@ -30,6 +30,8 @@ Google Blogger 向け AI ブログ自動運用システムです。下書き保�
 
 ## セットアップ
 
+Node.js 22 LTS または 24 LTS を使用してください。
+
 ```bash
 npm install
 cp .env.example .env
