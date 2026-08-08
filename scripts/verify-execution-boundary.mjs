@@ -10,13 +10,13 @@ function requireText(source, text, message) {
 
 requireText(
   service,
-  "this.config.AUTHORIZED_TEST_BLOG_ID",
-  "Configured dedicated test blog boundary missing"
+  "getAuthorizedBloggerBlogIds(this.config)",
+  "Configured blog allowlist boundary missing"
 );
 requireText(
   service,
-  "Schedule execution requires AUTHORIZED_TEST_BLOG_ID",
-  "Missing dedicated test blog must fail closed"
+  "Schedule execution requires AUTHORIZED_BLOG_IDS",
+  "Missing blog allowlist must fail closed"
 );
 requireText(service, "ENABLE_SCHEDULED_POST", "Scheduled-post feature flag boundary missing");
 requireText(service, "ENABLE_DRAFT_SAVE", "Draft-save mutual exclusion missing");

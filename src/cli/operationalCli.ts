@@ -14,6 +14,7 @@ import { JobRepository } from "../repositories/jobRepository.js";
 import { DryRunService } from "../services/dryRunService.js";
 import { DraftSaveService } from "../services/draftSaveService.js";
 import { BatchExecutionService } from "../services/batchExecutionService.js";
+import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { SchedulePlanService } from "../services/schedulePlanService.js";
 import { ScheduleApprovalService } from "../services/scheduleApprovalService.js";
 import { ScheduleReadinessService } from "../services/scheduleReadinessService.js";
@@ -134,6 +135,26 @@ export async function main(): Promise<void> {
         logger
       ).execute(manifest);
       logger.info(result, "Batch result");
+      return;
+    }
+    if (args.command === "run-schedule-batch") {
+      const manifest = await readJsonFile<unknown>(requiredString(args.options, "manifest"));
+      const approvalService = new ScheduleApprovalService(
+        config,
+        repos.jobs,
+        repos.articles,
+        logger
+      );
+      const executionService = new ScheduledPostExecutionService(config, repos, logger);
+      const result = await new ScheduleBatchExecutionService(
+        config,
+        {
+          approve: (input) => approvalService.execute(input),
+          execute: (input) => executionService.execute(input)
+        },
+        logger
+      ).run(manifest);
+      logger.info(result, "Schedule batch result");
       return;
     }
     if (args.command === "execute-schedule") {
@@ -260,6 +281,7 @@ Commands:
   dry-run --blog <path> --article <path>
   save-draft --blog <path> --article <path>
   run-batch --manifest <path>
+  run-schedule-batch --manifest <path>
   plan-schedule --blog <path> --article <path>
   approve-schedule --job <jobId> --confirm <jobId>
   check-schedule --job <jobId>
@@ -273,6 +295,7 @@ Commands:
 Dry-run opens Blogger and fills the editor only. It never saves, publishes, or confirms scheduling.
 Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms scheduling.
 Run-batch executes multiple draft saves or creates multiple local schedule plans from one manifest.
+Run-schedule-batch approves or executes multiple scheduled jobs from one manifest.
 Plan-schedule, approve-schedule, check-schedule, cancel-schedule, and prepare-execution-package are local-only and never open Blogger.
 Use open-login first when Google blocks login in an automated browser.
 `);

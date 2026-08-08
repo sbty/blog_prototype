@@ -332,3 +332,24 @@ node dist/cli/index.js audit-published-post --blog examples/blog.example.json --
 ```
 
 このコマンドは公開フィードで記事タイトルが完全一致する投稿が1件だけであること、本文が空でないこと、同一ブログの公開URLであること、画像が1件だけであること、画像が HTTP 200 かつ空でないことを確認します。データベースやBlogger管理画面への書き込みは行いません。
+
+## 複数予約ジョブの一括承認・実行
+
+`run-batch` の `plan-schedules` で作成した複数ジョブは、次のマニフェストで一括承認できます。例のジョブIDは架空値なので、実際のバッチ結果に記録されたIDへ置き換えてください。
+
+```powershell
+$env:ENABLE_DRAFT_SAVE='false'
+$env:ENABLE_SCHEDULED_POST='false'
+node dist/cli/index.js run-schedule-batch --manifest examples/schedule-approval-batch.example.json
+```
+
+ブラウザプレビュー、プレビュー確認、実行パッケージ作成、独立監査を各ジョブで完了した後、実際のSHA-256を実行マニフェストへ設定して一括実行できます。バッチ処理はこれらの証跡を省略しません。
+
+```powershell
+$env:AUTHORIZED_BLOG_IDS='1111111111111111111,2222222222222222222'
+$env:ENABLE_DRAFT_SAVE='false'
+$env:ENABLE_SCHEDULED_POST='true'
+node dist/cli/index.js run-schedule-batch --manifest examples/schedule-execution-batch.example.json
+```
+
+`AUTHORIZED_BLOG_IDS` は `.env` にだけ置くカンマ区切りの許可リストです。未設定、許可外ブログ、証跡不一致、STOP、実行済みジョブはいずれもBlogger操作前に拒否されます。旧 `AUTHORIZED_TEST_BLOG_ID` も移行互換として利用できます。結果は `data/jobs/<batchId>/schedule-batch-result.json` に保存されます。通常の失敗は既定で次項目へ継続し、`continueOnError: false` またはSTOPでは残りをスキップします。

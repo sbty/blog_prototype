@@ -8,10 +8,10 @@ describe("scheduled post execution boundary", () => {
     "utf8"
   );
 
-  it("restricts execution to the dedicated test blog", () => {
-    expect(source).toContain("this.config.AUTHORIZED_TEST_BLOG_ID");
-    expect(source).toContain("requires AUTHORIZED_TEST_BLOG_ID");
-    expect(source).toContain("restricted to the dedicated test blog");
+  it("restricts execution to an explicit blog allowlist", () => {
+    expect(source).toContain("getAuthorizedBloggerBlogIds(this.config)");
+    expect(source).toContain("requires AUTHORIZED_BLOG_IDS");
+    expect(source).toContain("restricted to an authorized blog");
   });
 
   it("requires the explicit execution flag and disables draft save", () => {

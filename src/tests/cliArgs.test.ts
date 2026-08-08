@@ -12,6 +12,12 @@ describe("parseArgs", () => {
       options: { manifest: "batch.json" }
     });
   });
+  it("parses a schedule batch manifest command", () => {
+    expect(parseArgs(["run-schedule-batch", "--manifest", "schedule-batch.json"])).toEqual({
+      command: "run-schedule-batch",
+      options: { manifest: "schedule-batch.json" }
+    });
+  });
   it("parses valid command options in any order", () => {
     expect(
       parseArgs([
@@ -133,6 +139,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("audit-published-post")).toBe(false);
     expect(commandRequiresDatabase("execute-schedule")).toBe(true);
     expect(commandRequiresDatabase("run-batch")).toBe(true);
+    expect(commandRequiresDatabase("run-schedule-batch")).toBe(true);
   });
 
   it("requires the database for stateful commands", () => {
