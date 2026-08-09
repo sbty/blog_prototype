@@ -49,6 +49,7 @@ export class ScheduleBatchExecutionService {
     private readonly executors: {
       approve: (input: ApprovalItem) => Promise<unknown>;
       prepare: (input: PreparationItem) => Promise<SchedulePreparationEvidence>;
+      validateExecution: (input: ExecutionItem) => Promise<unknown>;
       execute: (input: ExecutionItem) => Promise<unknown>;
     },
     private readonly logger: Logger
@@ -58,6 +59,10 @@ export class ScheduleBatchExecutionService {
     const manifest = scheduleBatchManifestSchema.parse(input);
     this.assertOperationEnabled(manifest.operation);
     await assertNotStopped(this.config.DATA_DIR);
+
+    if (manifest.operation === "execute-schedules") {
+      await this.validateExecutionBatch(manifest.items);
+    }
 
     const batchId = makeJobId("schedule-batch");
     const artifactDir = await createArtifactDir(this.config.DATA_DIR, batchId);
@@ -142,6 +147,22 @@ export class ScheduleBatchExecutionService {
       "Schedule batch completed"
     );
     return result;
+  }
+
+  private async validateExecutionBatch(items: ExecutionItem[]): Promise<void> {
+    const failures: string[] = [];
+    for (const item of items) {
+      await assertNotStopped(this.config.DATA_DIR);
+      try {
+        await this.executors.validateExecution(item);
+      } catch (error) {
+        if (error instanceof StopRequestedError) throw error;
+        failures.push(`${item.jobId}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (failures.length > 0) {
+      throw new Error(`Schedule batch execution preflight failed: ${failures.join("; ")}`);
+    }
   }
 
   private async executeItem(

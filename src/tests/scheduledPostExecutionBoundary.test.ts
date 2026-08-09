@@ -26,6 +26,18 @@ describe("scheduled post execution boundary", () => {
     expect(source).toContain("writeJsonArtifactExclusive");
   });
 
+  it("preflights every execution item before creating a batch artifact", () => {
+    const batchSource = readFileSync(
+      path.resolve("src/services/scheduleBatchExecutionService.ts"),
+      "utf8"
+    );
+    const preflight = batchSource.indexOf("await this.validateExecutionBatch(manifest.items)");
+    const artifact = batchSource.indexOf('makeJobId("schedule-batch")');
+    expect(preflight).toBeGreaterThan(-1);
+    expect(artifact).toBeGreaterThan(preflight);
+    expect(source.match(/await this\.validateExecution\(input\)/g)).toHaveLength(2);
+  });
+
   it("requires package and independent audit hashes", () => {
     expect(source).toContain("calculateArtifactSha256(packageBytes)");
     expect(source).toContain("calculateArtifactSha256(auditBytes)");
