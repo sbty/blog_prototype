@@ -21,6 +21,7 @@ export interface ScheduleBatchItemResult {
 export interface ScheduleBatchExecutionResult {
   batchId: string;
   operation: ScheduleBatchManifest["operation"];
+  continueOnError: boolean;
   artifactDir: string;
   reportPath: string;
   executionManifestPath?: string;
@@ -141,6 +142,7 @@ export class ScheduleBatchExecutionService {
     const result: ScheduleBatchExecutionResult = {
       batchId,
       operation: manifest.operation,
+      continueOnError: manifest.continueOnError,
       artifactDir,
       reportPath,
       ...(executionManifestPath ? { executionManifestPath } : {}),
