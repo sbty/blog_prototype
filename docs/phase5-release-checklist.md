@@ -5,7 +5,7 @@
 - [x] Scoped formatting passes.
 - [x] ESLint passes.
 - [x] TypeScript build passes.
-- [x] All 43 test files and 361 tests pass.
+- [x] All 43 test files and 362 tests pass.
 - [x] Compiled scheduled-execution boundary verification passes.
 - [x] A clean shallow clone can run `npm ci` and the complete local gate without local runtime data.
 - [x] Production and development dependency audits report zero known vulnerabilities.
@@ -26,14 +26,14 @@ npm run verify:local-complete
 
 ## Completed acceptance scope
 
-The locally configured dedicated test blog has accepted the guarded draft-save workflow and the guarded image-plus-scheduled-post workflow. The scheduled post was observed publicly, and its single image returned HTTP 200 with a nonempty image response.
+The locally configured dedicated test blogs have accepted the guarded draft-save and scheduled-post workflows. The original image-bearing scheduled post was observed publicly and its image returned HTTP 200; a later two-blog batch also produced one publicly observed post per dedicated test blog.
 
-The current source can prepare, preflight, execute, retry, inspect, and list multiple articles across an explicit local blog-ID allowlist. That implementation and its automated tests do not expand this release acceptance: no second Blogger blog has completed live acceptance.
+The current source can prepare, preflight, execute, retry, inspect, and list multiple articles across an explicit local blog-ID allowlist. A bounded acceptance batch scheduled one existing draft on each of two dedicated test blogs for the same time, completed with two successes, and both posts were observed publicly. This acceptance does not authorize additional blogs or posts.
 
 ## Explicitly outside this release
 
 - another save, schedule, publish, repair, rename, or delete operation;
-- another Blogger blog or production credentials;
+- a third Blogger blog or production credentials;
 - unattended publication or generalized rollout;
 - unbounded retries or deletion of attempt/resume evidence;
 - enabling a recurring OS task.

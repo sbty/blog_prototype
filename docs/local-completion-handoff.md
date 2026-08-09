@@ -6,7 +6,7 @@
 - Phase 3 local schedule planning, approval, readiness, non-mutating preview evidence, confirmation, cancellation, and one live mutation-blocked preview acceptance.
 - Phase 4 sealed local execution-candidate package and independent audit attestation.
 - Phase 5 dedicated-test-blog execution boundary, compiled-artifact verification, automated image-plus-schedule acceptance, public post/image audit, and operations runbook.
-- Multi-blog and multi-article campaign preparation, allowlisted schedule batches, all-items preflight, exact retry manifests, and read-only campaign/batch inspection and listing.
+- Multi-blog and multi-article campaign preparation, allowlisted schedule batches, all-items preflight, exact retry manifests, read-only campaign/batch inspection and listing, and one explicitly authorized two-blog scheduled-publication acceptance.
 
 Local evidence does not grant permission for another save, schedule, or publish operation.
 
@@ -29,7 +29,7 @@ This delegates to the Phase 5 boundary gate and checks scoped formatting, lint, 
 
 ## Deferred external scope
 
-The source supports multiple explicitly allowlisted blogs, but the completed live acceptances cover only the dedicated test blog and do not authorize another post or blog. Production credentials, generalized rollout, unattended publication, retries beyond the evidence-identical bounded resume, and removal of execution markers remain intentionally excluded.
+The source supports multiple explicitly allowlisted blogs, and live acceptance now covers exactly two dedicated test blogs with one scheduled article each. This does not authorize another post, an additional blog, or production use. Production credentials, generalized rollout, unattended publication, retries beyond the evidence-identical bounded resume, and removal of execution markers remain intentionally excluded.
 
 Any expansion requires explicit authorization, separate acceptance criteria, a safety review, and an ADR before implementation or execution.
 
@@ -39,7 +39,8 @@ Any expansion requires explicit authorization, separate acceptance criteria, a s
 - [Phase 3 checklist](phase3-completion-checklist.md)
 - [Phase 4 checklist](phase4-completion-checklist.md)
 - [Phase 5 checklist](phase5-boundary-checklist.md)
-- [Phase 5 execution ADR](adr/0006-dedicated-test-blog-scheduled-execution.md)
+- [Phase 5 original execution ADR](adr/0006-dedicated-test-blog-scheduled-execution.md)
+- [Two-blog acceptance ADR](adr/0016-two-blog-scheduled-acceptance.md)
 - [Phase 5 release checklist](phase5-release-checklist.md)
 - [Phase 5 operations runbook](phase5-operations-runbook.md)
 - [Disabled recurring audit example](read-only-scheduled-audit-example.md)
