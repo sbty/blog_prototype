@@ -19,6 +19,17 @@ describe("Blogger timezone validation", () => {
     });
     expect(result.expectedOffsetMinutes).toBe(540);
     expect(result.observedOffsetMinutes).toBe(540);
+    expect(result.observedTimestampSource).toBe("entry.published");
+  });
+
+  it("accepts feed.updated for a blog with no published entries", () => {
+    const result = validateBloggerFeedTimezone({
+      feed: { feed: { updated: { $t: "2026-08-10T02:20:00.000+09:00" } } },
+      publicUrl: "https://empty-example.blogspot.com/",
+      expectedTimezone: "Asia/Tokyo"
+    });
+    expect(result.observedOffsetMinutes).toBe(540);
+    expect(result.observedTimestampSource).toBe("feed.updated");
   });
 
   it("rejects the observed Blogger Pacific offset", () => {

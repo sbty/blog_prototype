@@ -79,6 +79,10 @@ npm run dev -- register-blog --blog examples/blog.example.json
 
 本番ブログで使う前に `adminUrl`、`publicUrl`、`blogger.selectorsPath` を実環境に合わせてください。
 
+PCパーツ・ガジェット・デスク用品ブログ向けの設定例は
+examples/desk-gear-lab.blog.json、対応するBloggerテーマは
+themes/desk-gear-lab-geek.xml にあります。どちらのURLとブログIDも架空値です。
+
 ## dry-run 実行
 
 ```bash
