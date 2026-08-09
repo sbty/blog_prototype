@@ -6,6 +6,7 @@
 - Phase 3 local schedule planning, approval, readiness, non-mutating preview evidence, confirmation, cancellation, and one live mutation-blocked preview acceptance.
 - Phase 4 sealed local execution-candidate package and independent audit attestation.
 - Phase 5 dedicated-test-blog execution boundary, compiled-artifact verification, automated image-plus-schedule acceptance, public post/image audit, and operations runbook.
+- Multi-blog and multi-article campaign preparation, allowlisted schedule batches, all-items preflight, exact retry manifests, and read-only campaign/batch inspection and listing.
 
 Local evidence does not grant permission for another save, schedule, or publish operation.
 
@@ -17,18 +18,18 @@ Run the current complete local safety gate:
 npm run verify:local-complete
 ```
 
-This delegates to the Phase 5 boundary gate and checks scoped formatting, lint, TypeScript compilation, the complete automated test suite, and the built CLI execution-denial boundary.
+This delegates to the Phase 5 boundary gate and checks scoped formatting, lint, TypeScript compilation, the complete automated test suite, and the built CLI scheduled-execution safety boundary.
 
 ## Required safety state
 
 - Keep `ENABLE_SCHEDULED_POST=false` for all local workflows.
 - Do not treat an execution package or audit attestation as execution authority.
-- Keep `execute-schedule` restricted to the dedicated blog ID and exact audited evidence.
+- Keep scheduled execution restricted to explicitly allowlisted blog IDs and exact audited evidence.
 - Use STOP checks and dedicated non-production data/profile paths for any future acceptance work.
 
 ## Deferred external scope
 
-The completed dedicated-test-blog acceptances do not authorize another post or blog. Production credentials, generalized rollout, unattended publication, broader retry behavior, and removal of execution markers remain intentionally excluded.
+The source supports multiple explicitly allowlisted blogs, but the completed live acceptances cover only the dedicated test blog and do not authorize another post or blog. Production credentials, generalized rollout, unattended publication, retries beyond the evidence-identical bounded resume, and removal of execution markers remain intentionally excluded.
 
 Any expansion requires explicit authorization, separate acceptance criteria, a safety review, and an ADR before implementation or execution.
 
