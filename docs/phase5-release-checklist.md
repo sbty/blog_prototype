@@ -5,14 +5,14 @@
 - [x] Scoped formatting passes.
 - [x] ESLint passes.
 - [x] TypeScript build passes.
-- [x] All 33 test files and 297 tests pass.
+- [x] All 43 test files and 361 tests pass.
 - [x] Compiled scheduled-execution boundary verification passes.
 - [x] A clean shallow clone can run `npm ci` and the complete local gate without local runtime data.
 - [x] Production and development dependency audits report zero known vulnerabilities.
 - [x] Repository secret scan finds no credential-shaped value outside ignored runtime data; the only match is a logger redaction test fixture.
 - [x] `.env`, `data`, `dist`, and `node_modules` are ignored.
 - [x] Runtime mutation flags are restored to `ENABLE_DRAFT_SAVE=false` and `ENABLE_SCHEDULED_POST=false`.
-- [x] The authorized Blogger blog ID is stored only in ignored local configuration and missing configuration fails closed.
+- [x] Authorized Blogger blog IDs are stored only in ignored local configuration and missing configuration fails closed.
 - [x] `APP_TIMEZONE=Asia/Tokyo` matches the accepted dedicated-blog feed offset.
 - [x] Public post audit finds exactly one title match and one valid Blogger-hosted image.
 - [x] Authentication, failure, duplicate, image, timezone, STOP, and evidence recovery are documented.
@@ -27,6 +27,8 @@ npm run verify:local-complete
 ## Completed acceptance scope
 
 The locally configured dedicated test blog has accepted the guarded draft-save workflow and the guarded image-plus-scheduled-post workflow. The scheduled post was observed publicly, and its single image returned HTTP 200 with a nonempty image response.
+
+The current source can prepare, preflight, execute, retry, inspect, and list multiple articles across an explicit local blog-ID allowlist. That implementation and its automated tests do not expand this release acceptance: no second Blogger blog has completed live acceptance.
 
 ## Explicitly outside this release
 

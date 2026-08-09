@@ -3,7 +3,7 @@
 ## Completed safety boundary
 
 - [x] Require job ID, exact confirmation, package SHA-256, and audit SHA-256.
-- [x] Restrict execution to the locally configured dedicated Blogger test blog.
+- [x] Restrict execution to Blogger blog IDs in the ignored local allowlist; live acceptance remains limited to the dedicated test blog.
 - [x] Require `ENABLE_SCHEDULED_POST=true` and `ENABLE_DRAFT_SAVE=false`.
 - [x] Recheck STOP and require the approved time to remain in the future.
 - [x] Read the Blogger public feed before any attempt marker or browser mutation and require its observed UTC offset to match `APP_TIMEZONE`.
