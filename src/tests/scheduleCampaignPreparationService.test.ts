@@ -7,6 +7,7 @@ import type { BlogConfig } from "../config/blogConfig.js";
 import { loadConfig } from "../config/env.js";
 import type { ArticleInput } from "../domain/article.js";
 import { ScheduleCampaignPreparationService } from "../services/scheduleCampaignPreparationService.js";
+import type { ScheduleCampaignPreflightResult } from "../services/scheduleCampaignPreflightService.js";
 import { StopRequestedError } from "../system/stop.js";
 
 const sha = (value: string) => value.repeat(64);
@@ -65,6 +66,13 @@ function fixture(flags: { dryRun?: boolean; draft?: boolean; scheduled?: boolean
     ENABLE_DRAFT_SAVE: String(flags.draft ?? false),
     ENABLE_SCHEDULED_POST: String(flags.scheduled ?? false)
   });
+  const preflight = vi.fn(async (): Promise<ScheduleCampaignPreflightResult> => ({
+    checkedAt: "2026-08-09T00:00:00.000Z",
+    passed: true,
+    counts: { blogs: 2, items: 2, images: 0 },
+    issues: [],
+    warnings: []
+  }));
   const plan = vi.fn(async (input: { blog: BlogConfig; article: ArticleInput }) => ({
     jobId: `job-${input.blog.blogKey}-${input.article.slug}`,
     artifactDir: path.join(dataDir, input.article.slug)
@@ -88,10 +96,10 @@ function fixture(flags: { dryRun?: boolean; draft?: boolean; scheduled?: boolean
   );
   const service = new ScheduleCampaignPreparationService(
     config,
-    { plan, approve, prepare, recover },
+    { preflight, plan, approve, prepare, recover },
     pino({ enabled: false })
   );
-  return { dataDir, service, plan, approve, prepare, recover };
+  return { dataDir, service, preflight, plan, approve, prepare, recover };
 }
 
 describe("ScheduleCampaignPreparationService", () => {
@@ -137,6 +145,26 @@ describe("ScheduleCampaignPreparationService", () => {
     delete invalid.items[0].article.scheduledAt;
 
     await expect(service.execute(invalid)).rejects.toThrow();
+    expect(plan).not.toHaveBeenCalled();
+  });
+
+  it("stops before creating jobs when campaign preflight fails", async () => {
+    const { service, preflight, plan } = fixture();
+    preflight.mockResolvedValueOnce({
+      checkedAt: "2026-08-09T00:00:00.000Z",
+      passed: false,
+      counts: { blogs: 2, items: 2, images: 0 },
+      issues: [
+        {
+          code: "IMAGE_INVALID",
+          path: "items.0.article.imagePath",
+          message: "bad image"
+        }
+      ],
+      warnings: []
+    });
+
+    await expect(service.execute(manifest())).rejects.toThrow("Campaign preflight failed");
     expect(plan).not.toHaveBeenCalled();
   });
 

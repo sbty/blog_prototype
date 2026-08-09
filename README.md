@@ -367,6 +367,12 @@ node dist/cli/index.js run-schedule-batch --manifest examples/schedule-execution
 
 複数ブログと複数記事を1つのJSONにまとめ、予約計画、ローカル承認、ブラウザプレビュー、プレビュー確認、実行パッケージ作成、独立監査までを1コマンドで処理できます。
 
+ジョブや成果物を作る前に、キャンペーン全体だけを読み取り検査できます。全記事の予約日時、同日件数上限、ブログの `publicUrl`、セレクタ設定、画像ファイル、安全フラグをまとめて確認し、ブラウザやBloggerは開きません。ブログIDの実行許可が未設定の場合は警告になりますが、準備自体は可能です。
+
+```powershell
+node dist/cli/index.js validate-campaign --manifest examples/schedule-campaign.example.json
+```
+
 ```powershell
 $env:ENABLE_DRY_RUN='true'
 $env:ENABLE_DRAFT_SAVE='false'
@@ -374,7 +380,7 @@ $env:ENABLE_SCHEDULED_POST='false'
 node dist/cli/index.js prepare-campaign --manifest examples/schedule-campaign.example.json
 ```
 
-`prepare-campaign` 自体が、マニフェストに列挙した記事のローカル承認操作です。Bloggerの投稿保存や予約確定は行わず、ブラウザ通信の変更リクエストも遮断されます。全項目を事前検証し、通常は1記事が失敗しても後続を続けます。`continueOnError: false` またはSTOPの場合は残りをスキップします。
+`prepare-campaign` は最初に同じ全体検査を自動実行し、合格結果を `schedule-campaign-preflight.json` に保存します。`prepare-campaign` 自体が、マニフェストに列挙した記事のローカル承認操作です。Bloggerの投稿保存や予約確定は行わず、ブラウザ通信の変更リクエストも遮断されます。全項目を事前検証し、通常は1記事が失敗しても後続を続けます。`continueOnError: false` またはSTOPの場合は残りをスキップします。
 
 成功した記事だけを含む `schedule-execution-batch.json` がキャンペーン結果ディレクトリへ自動生成されます。内容を確認した後、明示的に `ENABLE_SCHEDULED_POST=true` と許可ブログIDを設定し、次のコマンドへ渡すと最終実行できます。
 

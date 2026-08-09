@@ -7,6 +7,7 @@ import type { ArticleInput } from "../domain/article.js";
 import { assertNotStopped, StopRequestedError } from "../system/stop.js";
 import { createArtifactDir, makeJobId, writeJsonArtifactAtomic } from "./artifacts.js";
 import type { SchedulePreparationEvidence } from "./scheduleEvidencePreparationService.js";
+import type { ScheduleCampaignPreflightResult } from "./scheduleCampaignPreflightService.js";
 
 interface PlannedJob {
   jobId: string;
@@ -30,6 +31,7 @@ export interface ScheduleCampaignPreparationResult {
   operation: "prepare-campaign";
   artifactDir: string;
   reportPath: string;
+  preflightPath: string;
   executionManifestPath?: string;
   retryManifestPath?: string;
   startedAt: string;
@@ -42,6 +44,7 @@ export class ScheduleCampaignPreparationService {
   constructor(
     private readonly config: AppConfig,
     private readonly stages: {
+      preflight: (input: unknown) => Promise<ScheduleCampaignPreflightResult>;
       plan: (input: { blog: BlogConfig; article: ArticleInput }) => Promise<PlannedJob>;
       approve: (input: { jobId: string; confirmation: string }) => Promise<unknown>;
       prepare: (input: {
@@ -59,12 +62,22 @@ export class ScheduleCampaignPreparationService {
 
   async execute(input: unknown): Promise<ScheduleCampaignPreparationResult> {
     const manifest = scheduleCampaignManifestSchema.parse(input);
+    const preflight = await this.stages.preflight(manifest);
+    if (!preflight.passed) {
+      const summary = preflight.issues
+        .slice(0, 10)
+        .map((issue) => `${issue.path}: ${issue.message}`)
+        .join("; ");
+      throw new Error(`Campaign preflight failed: ${summary}`);
+    }
     this.assertEnabled();
     await assertNotStopped(this.config.DATA_DIR);
 
     const campaignId = makeJobId("schedule-campaign");
     const artifactDir = await createArtifactDir(this.config.DATA_DIR, campaignId);
     const reportPath = path.join(artifactDir, "schedule-campaign-result.json");
+    const preflightPath = path.join(artifactDir, "schedule-campaign-preflight.json");
+    await writeJsonArtifactAtomic(preflightPath, preflight);
     const startedAt = new Date().toISOString();
     const blogs = new Map(manifest.blogs.map((blog) => [blog.blogKey, blog]));
     const results: ScheduleCampaignItemResult[] = [];
@@ -185,6 +198,7 @@ export class ScheduleCampaignPreparationService {
       operation: manifest.operation,
       artifactDir,
       reportPath,
+      preflightPath,
       ...(executionManifestPath ? { executionManifestPath } : {}),
       ...(retryManifestPath ? { retryManifestPath } : {}),
       startedAt,

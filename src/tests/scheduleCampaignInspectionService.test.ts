@@ -187,6 +187,28 @@ describe("ScheduleCampaignInspectionService", () => {
       detail: "Job artifact directory is outside DATA_DIR/jobs"
     });
   });
+  it("validates a recorded campaign preflight artifact", async () => {
+    const { service, campaignId, campaignDir, reportPath, report } = fixture();
+    const preflightPath = path.join(campaignDir, "schedule-campaign-preflight.json");
+    writeJson(preflightPath, {
+      checkedAt: "2026-08-01T00:00:00.000Z",
+      passed: true,
+      counts: { blogs: 2, items: 2, images: 0 },
+      issues: [],
+      warnings: []
+    });
+    writeJson(reportPath, { ...report, preflightPath });
+    await expect(service.execute({ campaignId })).resolves.toMatchObject({ reportValid: true });
+
+    writeJson(preflightPath, {
+      checkedAt: "2026-08-01T00:00:00.000Z",
+      passed: false,
+      counts: { blogs: 2, items: 2, images: 0 },
+      issues: [{ code: "BAD", path: "items.0", message: "failed" }],
+      warnings: []
+    });
+    await expect(service.execute({ campaignId })).rejects.toThrow();
+  });
   it("rejects unsafe IDs and internally inconsistent reports", async () => {
     const { service, campaignId, reportPath, report } = fixture();
     await expect(service.execute({ campaignId: "../outside" })).rejects.toThrow(
