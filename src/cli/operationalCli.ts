@@ -16,6 +16,7 @@ import { DraftSaveService } from "../services/draftSaveService.js";
 import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
+import { ScheduleBatchListService } from "../services/scheduleBatchListService.js";
 import { ScheduleEvidencePreparationService } from "../services/scheduleEvidencePreparationService.js";
 import { ScheduleCampaignPreparationService } from "../services/scheduleCampaignPreparationService.js";
 import { ScheduleCampaignItemRecoveryService } from "../services/scheduleCampaignItemRecoveryService.js";
@@ -89,6 +90,12 @@ export async function main(): Promise<void> {
     );
     const result = await new PublishedPostAuditService().execute({ blog, article });
     logger.info(result, "Published post audit result");
+    return;
+  }
+  if (args.command === "list-schedule-batches") {
+    const inspector = new ScheduleBatchInspectionService(config);
+    const result = await new ScheduleBatchListService(config, inspector).execute();
+    logger.info(result, "Schedule batch list result");
     return;
   }
   if (args.command === "inspect-schedule-batch") {
@@ -369,6 +376,7 @@ Commands:
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
   inspect-schedule-batch --batch <batchId>
+  list-schedule-batches
   prepare-campaign --manifest <path>
   validate-campaign --manifest <path>
   inspect-campaign --campaign <campaignId>
@@ -388,6 +396,7 @@ Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms 
 Run-batch executes multiple draft saves or creates multiple local schedule plans from one manifest.
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.
 Inspect-schedule-batch validates a batch report and companion manifests without writing state.
+List-schedule-batches summarizes all schedule batch states without writing state.
 Prepare-campaign plans, approves, previews, and packages multiple scheduled articles without publishing.
 Validate-campaign checks the entire campaign without creating jobs or opening Blogger.
 Inspect-campaign validates campaign artifacts and reports each article action without writing state.

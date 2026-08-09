@@ -10,6 +10,7 @@ All notable changes to this project are documented in this file.
 - Added a fail-closed, all-items execution preflight before any scheduled batch artifact or Blogger mutation.
 - Added exact retry manifests for failed and skipped schedule approval, preparation, and execution batch items.
 - Added read-only schedule-batch inspection with strict result and companion-manifest validation.
+- Added a read-only, newest-first schedule-batch list with isolated invalid-result reporting.
 
 ### Security
 
