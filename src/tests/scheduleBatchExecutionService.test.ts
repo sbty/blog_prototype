@@ -134,6 +134,11 @@ describe("ScheduleBatchExecutionService", () => {
         auditSha256: sha("4")
       }
     ]);
+    expect(JSON.parse(readFileSync(result.retryManifestPath!, "utf8"))).toEqual({
+      operation: "prepare-schedules",
+      continueOnError: true,
+      items: [approval("job-1")]
+    });
   });
   it("executes multiple jobs with their individual evidence hashes", async () => {
     const { service, validateExecution, execute } = fixture({ scheduled: true });
@@ -149,6 +154,23 @@ describe("ScheduleBatchExecutionService", () => {
     );
     expect(execute.mock.calls[0][0]).toEqual(execution("job-1"));
     expect(result.items.map((item) => item.status)).toEqual(["SUCCEEDED", "SUCCEEDED"]);
+    expect(result.retryManifestPath).toBeUndefined();
+  });
+
+  it("writes a retry manifest with the original execution evidence after runtime failure", async () => {
+    const { service, execute } = fixture({ scheduled: true });
+    execute.mockRejectedValueOnce(new Error("browser failed"));
+    const result = await service.run({
+      operation: "execute-schedules",
+      items: [execution("job-1"), execution("job-2")]
+    });
+
+    expect(result.items.map((item) => item.status)).toEqual(["FAILED", "SUCCEEDED"]);
+    expect(JSON.parse(readFileSync(result.retryManifestPath!, "utf8"))).toEqual({
+      operation: "execute-schedules",
+      continueOnError: true,
+      items: [execution("job-1")]
+    });
   });
 
   it("rejects the whole execution batch before creating artifacts or mutating Blogger", async () => {
@@ -196,6 +218,12 @@ describe("ScheduleBatchExecutionService", () => {
       items: [approval("job-1"), approval("job-2")]
     });
     expect(continued.items.map((item) => item.status)).toEqual(["FAILED", "SUCCEEDED"]);
+    expect(JSON.parse(readFileSync(continued.retryManifestPath!, "utf8")).items).toEqual([
+      approval("job-1")
+    ]);
+    expect(JSON.parse(readFileSync(continued.reportPath, "utf8")).retryManifestPath).toBe(
+      continued.retryManifestPath
+    );
 
     const failFast = fixture();
     failFast.approve.mockRejectedValueOnce(new Error("failed"));
@@ -205,6 +233,11 @@ describe("ScheduleBatchExecutionService", () => {
       items: [approval("job-1"), approval("job-2")]
     });
     expect(stoppedEarly.items.map((item) => item.status)).toEqual(["FAILED", "SKIPPED"]);
+    expect(JSON.parse(readFileSync(stoppedEarly.retryManifestPath!, "utf8"))).toEqual({
+      operation: "approve-schedules",
+      continueOnError: false,
+      items: [approval("job-1"), approval("job-2")]
+    });
 
     const stopped = fixture();
     stopped.approve.mockRejectedValueOnce(

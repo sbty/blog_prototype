@@ -24,6 +24,7 @@ export interface ScheduleBatchExecutionResult {
   artifactDir: string;
   reportPath: string;
   executionManifestPath?: string;
+  retryManifestPath?: string;
   startedAt: string;
   completedAt: string;
   counts: { total: number; succeeded: number; failed: number; skipped: number };
@@ -125,12 +126,25 @@ export class ScheduleBatchExecutionService {
         });
       }
     }
+    const retryItems = results.flatMap((resultItem) =>
+      resultItem.status === "SUCCEEDED" ? [] : [manifest.items[resultItem.index]]
+    );
+    let retryManifestPath: string | undefined;
+    if (retryItems.length > 0) {
+      retryManifestPath = path.join(artifactDir, "schedule-batch-retry.json");
+      await writeJsonArtifactAtomic(retryManifestPath, {
+        operation: manifest.operation,
+        continueOnError: manifest.continueOnError,
+        items: retryItems
+      });
+    }
     const result: ScheduleBatchExecutionResult = {
       batchId,
       operation: manifest.operation,
       artifactDir,
       reportPath,
       ...(executionManifestPath ? { executionManifestPath } : {}),
+      ...(retryManifestPath ? { retryManifestPath } : {}),
       startedAt,
       completedAt: new Date().toISOString(),
       counts: {
@@ -143,7 +157,13 @@ export class ScheduleBatchExecutionService {
     };
     await writeJsonArtifactAtomic(reportPath, result);
     this.logger.info(
-      { batchId, operation: manifest.operation, counts: result.counts, reportPath },
+      {
+        batchId,
+        operation: manifest.operation,
+        counts: result.counts,
+        reportPath,
+        retryManifestPath
+      },
       "Schedule batch completed"
     );
     return result;
