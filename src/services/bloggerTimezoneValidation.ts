@@ -4,6 +4,7 @@ export interface BloggerTimezoneEvidence {
   expectedOffsetMinutes: number;
   observedOffsetMinutes: number;
   observedPublishedAt: string;
+  observedTimestampSource: "entry.published" | "feed.updated";
   checkedAt: string;
 }
 
@@ -32,9 +33,17 @@ export function validateBloggerFeedTimezone(input: {
   checkedAt?: Date;
 }): BloggerTimezoneEvidence {
   const checkedAt = input.checkedAt ?? new Date();
-  const entry = (input.feed as { feed?: { entry?: Array<{ published?: { $t?: unknown } }> } })?.feed
-    ?.entry?.[0];
-  const publishedAt = entry?.published?.$t;
+  const feed = (
+    input.feed as {
+      feed?: {
+        entry?: Array<{ published?: { $t?: unknown } }>;
+        updated?: { $t?: unknown };
+      };
+    }
+  )?.feed;
+  const entry = feed?.entry?.[0];
+  const observedTimestampSource = entry ? "entry.published" : "feed.updated";
+  const publishedAt = entry ? entry.published?.$t : feed?.updated?.$t;
   if (typeof publishedAt !== "string" || !Number.isFinite(Date.parse(publishedAt))) {
     throw new Error("Blogger feed does not contain a valid published timestamp");
   }
@@ -54,6 +63,7 @@ export function validateBloggerFeedTimezone(input: {
     expectedOffsetMinutes,
     observedOffsetMinutes,
     observedPublishedAt: publishedAt,
+    observedTimestampSource,
     checkedAt: checkedAt.toISOString()
   };
 }

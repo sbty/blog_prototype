@@ -1,0 +1,49 @@
+{
+  "blogKey": "desk-gear-lab-jp-01",
+  "displayName": "デスクギア研究所",
+  "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+  "publicUrl": "https://desk-gear-lab.example.invalid/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "PCパーツ・ガジェット・デスク環境の選び方と活用方法",
+  "targetAudience": [
+    "PCの購入や自作を検討している人",
+    "仕事やゲームのデスク環境を改善したい人",
+    "ガジェットの比較や選び方を知りたい人",
+    "在宅勤務やデスクワークを快適にしたい人"
+  ],
+  "topicClusters": [
+    "PCパーツ",
+    "自作PC",
+    "周辺機器",
+    "ガジェット",
+    "デスク用品",
+    "収納・配線整理",
+    "在宅勤務環境",
+    "ゲーミング環境",
+    "製品比較",
+    "選び方",
+    "設定・トラブル解決"
+  ],
+  "excludedTopics": [
+    "未確認の製品リーク",
+    "根拠のない性能評価",
+    "違法ダウンロードやライセンス回避",
+    "安全性を損なう改造",
+    "広告であることを隠した宣伝"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.5,
+    "durableExplainerRatio": 0.3,
+    "seasonalRatio": 0.1,
+    "newsRatio": 0.1
+  },
+  "targetLength": {
+    "min": 2500,
+    "max": 5000
+  },
+  "dailyPostLimit": 1,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}
