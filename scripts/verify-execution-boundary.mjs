@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 const service = readFileSync("dist/services/scheduledPostExecutionService.js", "utf8");
 const browser = readFileSync("dist/browser/bloggerDryRun.js", "utf8");
+const batch = readFileSync("dist/services/scheduleBatchExecutionService.js", "utf8");
 const args = readFileSync("dist/cli/args.js", "utf8");
 
 function requireText(source, text, message) {
@@ -38,9 +39,28 @@ if (scheduleStart < 0 || imageUpload < scheduleStart || publishClick < imageUplo
   throw new Error("Scheduled execution must upload the image before publish confirmation");
 }
 
-const timezoneCall = service.indexOf("await fetchAndValidateBloggerTimezone");
-const attemptMarker = service.indexOf("schedule-execution-attempt.json");
-if (timezoneCall < 0 || attemptMarker < timezoneCall) {
+const batchPreflight = batch.indexOf("await this.validateExecutionBatch(manifest.items)");
+const batchArtifact = batch.indexOf('makeJobId("schedule-batch")');
+if (batchPreflight < 0 || batchArtifact < batchPreflight) {
+  throw new Error("All execution items must pass preflight before batch artifact creation");
+}
+
+const executeStart = service.indexOf("async execute(input)");
+const executeEnd = service.indexOf("async readOptionalArtifact", executeStart);
+const executeSource = service.slice(executeStart, executeEnd);
+const validationCall = executeSource.indexOf("await this.validateExecution(input)");
+const attemptMarker = executeSource.indexOf("schedule-execution-attempt.json");
+const validationStart = service.indexOf("async validateExecution(input)");
+const validationSource = service.slice(validationStart);
+const timezoneCall = validationSource.indexOf("await fetchAndValidateBloggerTimezone");
+if (
+  executeStart < 0 ||
+  executeEnd < 0 ||
+  validationCall < 0 ||
+  attemptMarker < validationCall ||
+  validationStart < 0 ||
+  timezoneCall < 0
+) {
   throw new Error("Blogger timezone validation must run before the execution-attempt marker");
 }
 console.log("Built scheduled-execution safety boundary checks passed.");

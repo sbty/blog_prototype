@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import pino from "pino";
@@ -26,6 +26,14 @@ function fixture(flags: { scheduled?: boolean; draft?: boolean } = {}) {
     packageSha256: sha("3"),
     auditSha256: sha("4")
   }));
+  const validateExecution = vi.fn(
+    async (input: {
+      jobId: string;
+      confirmation: string;
+      packageSha256: string;
+      auditSha256: string;
+    }) => ({ jobId: input.jobId })
+  );
   const execute = vi.fn(
     async (input: {
       jobId: string;
@@ -36,10 +44,10 @@ function fixture(flags: { scheduled?: boolean; draft?: boolean } = {}) {
   );
   const service = new ScheduleBatchExecutionService(
     config,
-    { approve, prepare, execute },
+    { approve, prepare, validateExecution, execute },
     pino({ enabled: false })
   );
-  return { dataDir, service, approve, prepare, execute };
+  return { dataDir, service, approve, prepare, validateExecution, execute };
 }
 
 function approval(jobId: string) {
@@ -128,15 +136,36 @@ describe("ScheduleBatchExecutionService", () => {
     ]);
   });
   it("executes multiple jobs with their individual evidence hashes", async () => {
-    const { service, execute } = fixture({ scheduled: true });
+    const { service, validateExecution, execute } = fixture({ scheduled: true });
     const result = await service.run({
       operation: "execute-schedules",
       items: [execution("job-1"), execution("job-2")]
     });
 
+    expect(validateExecution).toHaveBeenCalledTimes(2);
     expect(execute).toHaveBeenCalledTimes(2);
+    expect(validateExecution.mock.invocationCallOrder[1]).toBeLessThan(
+      execute.mock.invocationCallOrder[0]
+    );
     expect(execute.mock.calls[0][0]).toEqual(execution("job-1"));
     expect(result.items.map((item) => item.status)).toEqual(["SUCCEEDED", "SUCCEEDED"]);
+  });
+
+  it("rejects the whole execution batch before creating artifacts or mutating Blogger", async () => {
+    const { dataDir, service, validateExecution, execute } = fixture({ scheduled: true });
+    validateExecution
+      .mockRejectedValueOnce(new Error("job state invalid"))
+      .mockRejectedValueOnce(new Error("evidence invalid"));
+
+    await expect(
+      service.run({
+        operation: "execute-schedules",
+        items: [execution("job-1"), execution("job-2")]
+      })
+    ).rejects.toThrow(/job-1: job state invalid.*job-2: evidence invalid/);
+    expect(validateExecution).toHaveBeenCalledTimes(2);
+    expect(execute).not.toHaveBeenCalled();
+    expect(existsSync(path.join(dataDir, "jobs"))).toBe(false);
   });
 
   it("validates all confirmations, hashes, and duplicate jobs before execution", async () => {

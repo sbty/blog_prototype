@@ -228,6 +228,7 @@ export async function main(): Promise<void> {
         {
           approve: (input) => approvalService.execute(input),
           prepare: (input) => preparationService.execute(input),
+          validateExecution: (input) => executionService.validate(input),
           execute: (input) => executionService.execute(input)
         },
         logger
