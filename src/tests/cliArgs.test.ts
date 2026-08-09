@@ -24,6 +24,12 @@ describe("parseArgs", () => {
       options: { batch: "schedule-batch-1" }
     });
   });
+  it("parses the schedule batch list command without options", () => {
+    expect(parseArgs(["list-schedule-batches"])).toEqual({
+      command: "list-schedule-batches",
+      options: {}
+    });
+  });
   it("parses a campaign preparation command", () => {
     expect(parseArgs(["prepare-campaign", "--manifest", "campaign.json"])).toEqual({
       command: "prepare-campaign",
@@ -168,6 +174,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("audit-drafts")).toBe(false);
     expect(commandRequiresDatabase("audit-published-post")).toBe(false);
     expect(commandRequiresDatabase("inspect-schedule-batch")).toBe(false);
+    expect(commandRequiresDatabase("list-schedule-batches")).toBe(false);
     expect(commandRequiresDatabase("execute-schedule")).toBe(true);
     expect(commandRequiresDatabase("run-batch")).toBe(true);
     expect(commandRequiresDatabase("run-schedule-batch")).toBe(true);

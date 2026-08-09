@@ -371,6 +371,12 @@ node dist/cli/index.js run-schedule-batch --manifest examples/schedule-execution
 node dist/cli/index.js inspect-schedule-batch --batch <batchId>
 ```
 
+`batchId` が分からない場合は、全予約バッチを完了日時の新しい順に一覧表示できます。不正な結果は他のバッチを妨げず `INVALID` として表示されます。
+
+```powershell
+node dist/cli/index.js list-schedule-batches
+```
+
 ## キャンペーン単位の予約準備
 
 複数ブログと複数記事を1つのJSONにまとめ、予約計画、ローカル承認、ブラウザプレビュー、プレビュー確認、実行パッケージ作成、独立監査までを1コマンドで処理できます。
