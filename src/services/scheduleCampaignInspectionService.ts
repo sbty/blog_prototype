@@ -38,12 +38,35 @@ const campaignItemSchema = z
       context.addIssue({ code: "custom", message: "Successful item requires job evidence" });
     }
   });
+const preflightIssueSchema = z
+  .object({
+    code: z.string().min(1),
+    path: z.string(),
+    message: z.string().min(1)
+  })
+  .strict();
+const campaignPreflightSchema = z
+  .object({
+    checkedAt: canonicalUtcTimestamp,
+    passed: z.literal(true),
+    counts: z
+      .object({
+        blogs: z.number().int().nonnegative(),
+        items: z.number().int().nonnegative(),
+        images: z.number().int().nonnegative()
+      })
+      .strict(),
+    issues: z.array(preflightIssueSchema).length(0),
+    warnings: z.array(preflightIssueSchema)
+  })
+  .strict();
 const campaignResultSchema = z
   .object({
     campaignId: z.string().min(1),
     operation: z.literal("prepare-campaign"),
     artifactDir: z.string().min(1),
     reportPath: z.string().min(1),
+    preflightPath: z.string().min(1).optional(),
     executionManifestPath: z.string().min(1).optional(),
     retryManifestPath: z.string().min(1).optional(),
     startedAt: canonicalUtcTimestamp,
@@ -133,6 +156,18 @@ export class ScheduleCampaignInspectionService {
       throw new Error("Campaign report artifact directory does not match");
     }
     this.assertReportedPath(campaignDir, report.reportPath, "schedule-campaign-result.json");
+    if (report.preflightPath) {
+      this.assertReportedPath(
+        campaignDir,
+        report.preflightPath,
+        "schedule-campaign-preflight.json"
+      );
+      const preflightBytes = await readArtifactFileInsideDirectory(
+        campaignDir,
+        "schedule-campaign-preflight.json"
+      );
+      campaignPreflightSchema.parse(parseJsonWithBom(Buffer.from(preflightBytes).toString("utf8")));
+    }
 
     const executionManifest = await this.validateExecutionManifest(campaignDir, report);
     const retryManifest = await this.validateRetryManifest(campaignDir, report);

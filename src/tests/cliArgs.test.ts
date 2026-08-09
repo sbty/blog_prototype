@@ -24,6 +24,12 @@ describe("parseArgs", () => {
       options: { manifest: "campaign.json" }
     });
   });
+  it("parses a campaign validation command", () => {
+    expect(parseArgs(["validate-campaign", "--manifest", "campaign.json"])).toEqual({
+      command: "validate-campaign",
+      options: { manifest: "campaign.json" }
+    });
+  });
   it("parses a campaign inspection command", () => {
     expect(parseArgs(["inspect-campaign", "--campaign", "schedule-campaign-1"])).toEqual({
       command: "inspect-campaign",
@@ -159,6 +165,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("run-batch")).toBe(true);
     expect(commandRequiresDatabase("run-schedule-batch")).toBe(true);
     expect(commandRequiresDatabase("prepare-campaign")).toBe(true);
+    expect(commandRequiresDatabase("validate-campaign")).toBe(true);
     expect(commandRequiresDatabase("inspect-campaign")).toBe(true);
     expect(commandRequiresDatabase("list-campaigns")).toBe(true);
   });

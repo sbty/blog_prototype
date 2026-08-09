@@ -20,6 +20,7 @@ import { ScheduleCampaignPreparationService } from "../services/scheduleCampaign
 import { ScheduleCampaignItemRecoveryService } from "../services/scheduleCampaignItemRecoveryService.js";
 import { ScheduleCampaignInspectionService } from "../services/scheduleCampaignInspectionService.js";
 import { ScheduleCampaignListService } from "../services/scheduleCampaignListService.js";
+import { ScheduleCampaignPreflightService } from "../services/scheduleCampaignPreflightService.js";
 import { SchedulePlanService } from "../services/schedulePlanService.js";
 import { ScheduleApprovalService } from "../services/scheduleApprovalService.js";
 import { ScheduleReadinessService } from "../services/scheduleReadinessService.js";
@@ -156,8 +157,18 @@ export async function main(): Promise<void> {
       logger.info(result, "Schedule campaign inspection result");
       return;
     }
+    if (args.command === "validate-campaign") {
+      const manifest = await readJsonFile<unknown>(requiredString(args.options, "manifest"));
+      const result = await new ScheduleCampaignPreflightService(config, repos.articles).execute(
+        manifest
+      );
+      logger.info(result, "Schedule campaign preflight result");
+      if (!result.passed) throw new Error("Campaign preflight failed");
+      return;
+    }
     if (args.command === "prepare-campaign") {
       const manifest = await readJsonFile<unknown>(requiredString(args.options, "manifest"));
+      const preflightService = new ScheduleCampaignPreflightService(config, repos.articles);
       const planService = new SchedulePlanService(config, repos, logger);
       const approvalService = new ScheduleApprovalService(
         config,
@@ -178,6 +189,7 @@ export async function main(): Promise<void> {
       const result = await new ScheduleCampaignPreparationService(
         config,
         {
+          preflight: (input) => preflightService.execute(input),
           plan: (input) => planService.execute(input),
           approve: (input) => approvalService.execute(input),
           prepare: (input) => preparationService.execute(input),
@@ -349,6 +361,7 @@ Commands:
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
   prepare-campaign --manifest <path>
+  validate-campaign --manifest <path>
   inspect-campaign --campaign <campaignId>
   list-campaigns
   plan-schedule --blog <path> --article <path>
@@ -366,6 +379,7 @@ Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms 
 Run-batch executes multiple draft saves or creates multiple local schedule plans from one manifest.
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.
 Prepare-campaign plans, approves, previews, and packages multiple scheduled articles without publishing.
+Validate-campaign checks the entire campaign without creating jobs or opening Blogger.
 Inspect-campaign validates campaign artifacts and reports each article action without writing state.
 List-campaigns summarizes all campaign states without writing state.
 Plan-schedule, approve-schedule, check-schedule, cancel-schedule, and prepare-execution-package are local-only and never open Blogger.
