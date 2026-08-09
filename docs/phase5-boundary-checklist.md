@@ -3,7 +3,7 @@
 ## Completed safety boundary
 
 - [x] Require job ID, exact confirmation, package SHA-256, and audit SHA-256.
-- [x] Restrict execution to Blogger blog IDs in the ignored local allowlist; live acceptance remains limited to the dedicated test blog.
+- [x] Restrict execution to Blogger blog IDs in the ignored local allowlist; live acceptance covers exactly two dedicated test blogs.
 - [x] Require `ENABLE_SCHEDULED_POST=true` and `ENABLE_DRAFT_SAVE=false`.
 - [x] Recheck STOP and require the approved time to remain in the future.
 - [x] Read the Blogger public feed before any attempt marker or browser mutation and require its observed UTC offset to match `APP_TIMEZONE`.
@@ -22,18 +22,19 @@
 
 - [x] One dedicated-test-blog post was scheduled manually and later observed as published.
 - [x] A second explicitly authorized post completed the full automated image-plus-schedule-confirmation path and was independently observed as exactly one scheduled post.
+- [x] One explicitly authorized two-blog batch scheduled one existing draft per dedicated test blog for `2026-08-10 02:45 JST`; both items succeeded and both posts were observed publicly.
 - [x] Exactly one image was inserted into the same post.
 - [x] The public feed contained the matching title and one image.
 - [x] The public image returned HTTP 200.
 - [x] Safety flags were restored to `ENABLE_DRAFT_SAVE=false` and `ENABLE_SCHEDULED_POST=false`.
-- [x] Live feed validation observed `+09:00` and matched `APP_TIMEZONE=Asia/Tokyo` on `2026-08-06 JST`.
+- [x] Live feed validation observed `+09:00` and matched `APP_TIMEZONE=Asia/Tokyo` for both accepted blogs; the empty-blog case used the feed-level update timestamp.
 
 ## Still not authorized
 
-- [ ] Another post or another Blogger blog.
+- [ ] Another post or a third Blogger blog.
 - [ ] Unbounded retries or removal of exclusive attempt markers.
 - [ ] Production credentials or generalized rollout.
 - [ ] Treating local evidence as execution permission without explicit authorization.
 - [ ] Scheduling while the Blogger feed offset differs from `APP_TIMEZONE`; correct Blogger's timezone setting first.
 
-See ADR 0006 for the narrow acceptance decision and its limitations.
+See ADR 0006 for the original single-blog acceptance and ADR 0016 for the bounded two-blog acceptance.

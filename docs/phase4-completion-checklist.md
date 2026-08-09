@@ -21,10 +21,10 @@
 
 ## Dedicated acceptance exception and remaining exclusions
 
-- [x] One explicitly authorized dedicated-test-blog post was scheduled, published, and audited; image insertion was verified separately.
-- [x] A browser executor exists only behind the ignored local blog-ID allowlist, evidence hashes, STOP, feature flags, and exclusive attempt/resume markers; live acceptance remains dedicated-blog-only.
+- [x] One explicitly authorized image-bearing post and one two-blog batch with one post per dedicated test blog were scheduled, published, and audited.
+- [x] A browser executor exists only behind the ignored local blog-ID allowlist, evidence hashes, STOP, feature flags, and exclusive attempt/resume markers; live acceptance covers exactly two dedicated test blogs.
 - [x] `ENABLE_SCHEDULED_POST` was enabled only in the accepted process and restored to false.
 - [ ] Production credentials, retries beyond the evidence-identical bounded resume, or production rollout.
 - [ ] A state transition that represents external execution authority or completion.
 
-ADR 0006 records the narrow acceptance exception. The local Phase 4 artifacts alone must never be interpreted as permission to mutate Blogger.
+ADR 0006 records the original single-blog exception and ADR 0016 records the bounded two-blog acceptance. The local Phase 4 artifacts alone must never be interpreted as permission to mutate Blogger.

@@ -11,6 +11,13 @@ All notable changes to this project are documented in this file.
 - Added exact retry manifests for failed and skipped schedule approval, preparation, and execution batch items.
 - Added read-only schedule-batch inspection with strict result and companion-manifest validation.
 - Added a read-only, newest-first schedule-batch list with isolated invalid-result reporting.
+- Added empty-blog timezone validation using the feed-level update timestamp, while preserving published-entry validation.
+- Added a sanitized PC/gadget/desk blog configuration example and a responsive geek-style Blogger theme.
+
+### Changed
+
+- Completed one explicitly authorized two-blog acceptance batch with one existing draft per dedicated test blog; both items were scheduled for the same JST time and observed publicly.
+- Recorded the bounded acceptance in ADR 0016 without expanding authority to additional blogs, posts, unattended publication, or production.
 
 ### Security
 
