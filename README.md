@@ -361,7 +361,7 @@ $env:ENABLE_SCHEDULED_POST='true'
 node dist/cli/index.js run-schedule-batch --manifest examples/schedule-execution-batch.example.json
 ```
 
-`AUTHORIZED_BLOG_IDS` は `.env` にだけ置くカンマ区切りの許可リストです。未設定、許可外ブログ、証跡不一致、STOP、実行済みジョブはいずれもBlogger操作前に拒否されます。`execute-schedules` は全ジョブの状態、ブログ許可、証跡、予約時刻、実行・再開マーカー、公開URLとタイムゾーンを最初に一括検査し、1件でも不備があればバッチ成果物の作成前かつ最初のBlogger操作前に全体を拒否します。全体検査後も各記事の直前に同じ条件を再検証します。旧 `AUTHORIZED_TEST_BLOG_ID` も移行互換として利用できます。結果は `data/jobs/<batchId>/schedule-batch-result.json` に保存されます。通常の失敗は既定で次項目へ継続し、`continueOnError: false` またはSTOPでは残りをスキップします。
+`AUTHORIZED_BLOG_IDS` は `.env` にだけ置くカンマ区切りの許可リストです。未設定、許可外ブログ、証跡不一致、STOP、実行済みジョブはいずれもBlogger操作前に拒否されます。`execute-schedules` は全ジョブの状態、ブログ許可、証跡、予約時刻、実行・再開マーカー、公開URLとタイムゾーンを最初に一括検査し、1件でも不備があればバッチ成果物の作成前かつ最初のBlogger操作前に全体を拒否します。全体検査後も各記事の直前に同じ条件を再検証します。旧 `AUTHORIZED_TEST_BLOG_ID` も移行互換として利用できます。結果は `data/jobs/<batchId>/schedule-batch-result.json` に保存されます。通常の失敗は既定で次項目へ継続し、`continueOnError: false` またはSTOPでは残りをスキップします。実行開始後に失敗またはスキップされた項目がある場合、元の操作種別・確認値・SHA証跡を保持した `schedule-batch-retry.json` を同じディレクトリへ生成し、結果の `retryManifestPath` に記録します。このファイルはそのまま `run-schedule-batch --manifest` へ渡せます。全件事前検査で拒否された場合は成果物を作らないため、元マニフェストまたは設定を修正して再検査します。
 
 ## キャンペーン単位の予約準備
 
