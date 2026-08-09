@@ -9,6 +9,7 @@ All notable changes to this project are documented in this file.
 - Added prevalidated sequential batch execution for multiple blogs and articles, with durable result reports, partial-failure handling, fail-fast mode, and STOP-aware skipping.
 - Added a fail-closed, all-items execution preflight before any scheduled batch artifact or Blogger mutation.
 - Added exact retry manifests for failed and skipped schedule approval, preparation, and execution batch items.
+- Added read-only schedule-batch inspection with strict result and companion-manifest validation.
 
 ### Security
 
