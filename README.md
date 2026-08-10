@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/sbty/blog_prototype/actions/workflows/ci.yml/badge.svg)](https://github.com/sbty/blog_prototype/actions/workflows/ci.yml)
 
-現在の限定安定版: [v0.1.1](https://github.com/sbty/blog_prototype/releases/tag/v0.1.1)
+現在の限定安定版: [v0.2.0](https://github.com/sbty/blog_prototype/releases/tag/v0.2.0)
 
 現在のリポジトリ運用範囲は、ローカルで明示的に許可した専用Bloggerテストブログだけを対象とします。2ブログで一括予約・公開を受入確認済みですが、追加のBlogger実操作、無人公開、本番運用を許可するものではありません。
 
