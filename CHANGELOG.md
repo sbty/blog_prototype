@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [0.2.0] - 2026-08-11
+
 ### Added
 
 - Added prevalidated sequential batch execution for multiple blogs and articles, with durable result reports, partial-failure handling, fail-fast mode, and STOP-aware skipping.
@@ -65,5 +67,6 @@ All notable changes to this project are documented in this file.
 - This release does not authorize another Blogger mutation, another blog, unattended publishing, production rollout, or unbounded retries.
 - Expanding the execution scope requires explicit authorization, separate acceptance criteria, a safety review, and an ADR.
 
+[0.2.0]: https://github.com/sbty/blog_prototype/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/sbty/blog_prototype/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/sbty/blog_prototype/releases/tag/v0.1.0
