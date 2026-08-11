@@ -1,0 +1,47 @@
+{
+  "blogKey": "global-app-spec-lab-jp-01",
+  "displayName": "海外アプリ仕様ラボ",
+  "adminUrl": "https://www.blogger.com/blog/posts/233555385969780071",
+  "publicUrl": "https://global-app-spec-lab.blogspot.com/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "海外で先行提供される主要アプリ・Webサービスの機能、料金、規約、使い方の実用解説",
+  "targetAudience": [
+    "海外サービスの新機能を日本語で理解したい人",
+    "アプリの料金・制限・プライバシー設定を比較したい人",
+    "日本での提供時期や利用条件を知りたい人",
+    "サービス移行や代替アプリを検討している人"
+  ],
+  "topicClusters": [
+    "メッセージ・SNS・コミュニティ",
+    "音楽・動画・ストリーミング",
+    "ゲーム配信・デジタルストア",
+    "ブラウザ・地図・検索",
+    "生成AI搭載サービスの実用機能",
+    "VPN・セキュリティ・プライバシー",
+    "クラウドストレージ・同期",
+    "料金改定・規約変更・地域別提供状況",
+    "競合サービス比較・移行方法"
+  ],
+  "excludedTopics": [
+    "投機的なAIモデル発表速報",
+    "未確認リークや噂だけの記事",
+    "違法コピー・規約回避・不正アクセス",
+    "実際の利用者に影響しない企業ニュース",
+    "提供地域と確認日が不明な機能紹介"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.35,
+    "durableExplainerRatio": 0.3,
+    "seasonalRatio": 0.1,
+    "newsRatio": 0.25
+  },
+  "targetLength": {
+    "min": 2500,
+    "max": 5000
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

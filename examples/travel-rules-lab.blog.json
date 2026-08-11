@@ -1,0 +1,46 @@
+{
+  "blogKey": "travel-rules-lab-jp-01",
+  "displayName": "海外旅行ルール研究所",
+  "adminUrl": "https://www.blogger.com/blog/posts/4574018592771761296",
+  "publicUrl": "https://travel-rules-lab.blogspot.com/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "日本人海外旅行者が実際に困る入国制度・交通規則・料金・現地ルールの実用解説",
+  "targetAudience": [
+    "海外旅行を計画している日本人",
+    "ビザや入国要件を正確に確認したい人",
+    "航空便の遅延・欠航・手荷物トラブルに備えたい人",
+    "現地交通・通信・税金のルールを事前に知りたい人"
+  ],
+  "topicClusters": [
+    "ビザ・ESTA・ETIAS・ETA",
+    "パスポート・入国審査・税関",
+    "観光税・免税・チップ",
+    "航空会社・空港・手荷物・液体物",
+    "EU旅客権・遅延補償・欠航対応",
+    "鉄道チケット・国際運転免許・現地交通",
+    "SIM・eSIM・海外通信",
+    "国別の制度変更と年度別更新"
+  ],
+  "excludedTopics": [
+    "一般的な観光地ランキング",
+    "根拠のない入国可否やビザ助言",
+    "更新日と一次情報を確認できない制度記事",
+    "違法な入国・税関回避の方法",
+    "旅行ルールと関係のない国際ニュース"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.45,
+    "durableExplainerRatio": 0.25,
+    "seasonalRatio": 0.1,
+    "newsRatio": 0.2
+  },
+  "targetLength": {
+    "min": 2500,
+    "max": 5000
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

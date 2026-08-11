@@ -1,0 +1,47 @@
+{
+  "blogKey": "game-platform-lab-jp-01",
+  "displayName": "ゲーム基盤研究所",
+  "adminUrl": "https://www.blogger.com/blog/posts/8509618912666909127",
+  "publicUrl": "https://game-platform-lab.blogspot.com/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "ゲームを支える技術・ビジネス・プラットフォーム・デジタル所有権の実用解説",
+  "targetAudience": [
+    "PC・コンソールゲームの仕組みに関心がある人",
+    "ゲーム購入先や保存方法を比較したい人",
+    "PCパーツとゲーム性能の関係を理解したい人",
+    "ゲーム業界の技術・権利・サービス終了問題を追う人"
+  ],
+  "topicClusters": [
+    "DRM・アンチチート・Secure Boot",
+    "MOD・ゲーム保存・互換性",
+    "Steam・Epic・GOG・各社ストア",
+    "Xbox・PlayStation・Nintendo",
+    "Linux・Proton・クラウドゲーミング",
+    "デジタル所有権・物理メディア・サーバー終了",
+    "ゲーム価格・DLC・サブスクリプション",
+    "Unreal Engine・Unity・AI NPC・モーションキャプチャ",
+    "GPU・CPU・SSD・周辺機器とゲーム性能"
+  ],
+  "excludedTopics": [
+    "新作ゲームの一般的な発売速報",
+    "未確認リークや発売日の噂",
+    "チート・海賊版・DRM回避の手順",
+    "根拠のないベンチマーク比較",
+    "技術・ビジネス面のない攻略記事"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.4,
+    "durableExplainerRatio": 0.3,
+    "seasonalRatio": 0.1,
+    "newsRatio": 0.2
+  },
+  "targetLength": {
+    "min": 2500,
+    "max": 5000
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

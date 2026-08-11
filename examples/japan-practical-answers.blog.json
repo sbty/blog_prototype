@@ -1,0 +1,46 @@
+{
+  "blogKey": "japan-practical-answers-en-01",
+  "displayName": "Japan Practical Answers",
+  "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+  "publicUrl": "https://japan-practical-answers.example.invalid/",
+  "language": "en",
+  "targetCountry": "GLOBAL",
+  "primaryTheme": "English explanations of Japan's detailed public systems, everyday rules, services, signs, and practical questions, based on Japanese primary sources",
+  "targetAudience": [
+    "First-time visitors to Japan",
+    "Independent travelers using Japanese transport and services",
+    "Visitors who need practical answers based on Japanese primary sources",
+    "Long-stay travelers navigating accommodation, medicine, luggage, shopping, and local rules"
+  ],
+  "topicClusters": [
+    "IC cards, trains, buses, and reserved seats",
+    "Hotels, passports, towels, pajamas, per-person pricing, and accommodation tax",
+    "Medicine, pharmacies, customs, and restricted items",
+    "Luggage forwarding, parcel lockers, coin lockers, and baggage rules",
+    "Toilets, waste disposal, public facilities, and household rules",
+    "Internet cafes, contact lenses, SIMs, Wi-Fi, and digital services",
+    "Regional travel, cultural experiences, and local transport",
+    "Japanese signs, terms, procedures, voltage, and everyday systems"
+  ],
+  "excludedTopics": [
+    "Generic best-things-to-do destination lists",
+    "Unverified legal, medical, or immigration advice",
+    "Articles based only on machine-translated secondary sources",
+    "Stereotypes presented as universal Japanese rules",
+    "Travel news without a practical visitor question"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.55,
+    "durableExplainerRatio": 0.25,
+    "seasonalRatio": 0.15,
+    "newsRatio": 0.05
+  },
+  "targetLength": {
+    "min": 1800,
+    "max": 3500
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

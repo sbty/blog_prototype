@@ -1,0 +1,47 @@
+{
+  "blogKey": "repair-maintenance-lab-jp-01",
+  "displayName": "修理とメンテナンス研究所",
+  "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+  "publicUrl": "https://repair-maintenance-lab.example.invalid/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "海外の知見を日本の製品環境と安全基準に照らして解説するDIY修理・部品交換・予防メンテナンス情報",
+  "targetAudience": [
+    "製品を買い替えず長く使いたい人",
+    "故障原因を切り分けて交換部品を探したい人",
+    "PC・デスク用品・小型家電を自分で整備したい人",
+    "定期清掃と消耗品交換で故障を予防したい人"
+  ],
+  "topicClusters": [
+    "PCファン・空冷・水冷メンテナンス",
+    "キーボード・マウス・スイッチ交換",
+    "デスクチェア・モニターアーム・デスク用品",
+    "NAS・HDD・SSD・バックアップ",
+    "ロボット掃除機・小型家電の清掃",
+    "コーヒーマシン・フィルター・除石灰",
+    "異音・発熱・動作不良の原因切り分け",
+    "交換部品・工具・清掃用品の選び方",
+    "修理か買い替えかの判断"
+  ],
+  "excludedTopics": [
+    "感電・火災・冷媒漏れなど有資格者向け作業",
+    "安全装置を無効化する改造",
+    "メーカー保証や法令を無視した手順",
+    "型番・電圧・部品仕様を確認しない交換案内",
+    "実証されていない民間療法的な修理方法"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.55,
+    "durableExplainerRatio": 0.3,
+    "seasonalRatio": 0.1,
+    "newsRatio": 0.05
+  },
+  "targetLength": {
+    "min": 2500,
+    "max": 5000
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}
