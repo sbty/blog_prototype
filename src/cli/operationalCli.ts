@@ -141,11 +141,13 @@ export async function main(): Promise<void> {
 
     if (args.command === "run-batch") {
       const manifest = await readJsonFile<unknown>(requiredString(args.options, "manifest"));
+      const dryRunService = new DryRunService(config, repos, logger);
       const draftService = new DraftSaveService(config, repos, logger);
       const scheduleService = new SchedulePlanService(config, repos, logger);
       const result = await new BatchExecutionService(
         config,
         {
+          dryRun: (input) => dryRunService.execute(input),
           saveDraft: (input) => draftService.execute(input),
           planSchedule: async (input) => {
             const planned = await scheduleService.execute(input);

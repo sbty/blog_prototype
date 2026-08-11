@@ -27,15 +27,20 @@ function article(slug: string, scheduledAt?: string) {
   };
 }
 
-function fixture(input: { draftEnabled?: boolean } = {}) {
+function fixture(input: { draftEnabled?: boolean; dryRunEnabled?: boolean } = {}) {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "blogger-batch-"));
   const config = loadConfig({
     DATA_DIR: dataDir,
     DATABASE_PATH: path.join(dataDir, "app.sqlite"),
+    ENABLE_DRY_RUN: String(input.dryRunEnabled ?? true),
     ENABLE_DRAFT_SAVE: String(input.draftEnabled ?? true),
     ENABLE_SCHEDULED_POST: "false"
   });
   type ExecutorInput = { blog: { blogKey: string }; article: { slug: string } };
+  const dryRun = vi.fn(async ({ article: item }: ExecutorInput) => ({
+    jobId: `dryrun-${item.slug}`,
+    artifactDir: path.join(dataDir, item.slug)
+  }));
   const saveDraft = vi.fn(async ({ article: item }: ExecutorInput) => ({
     jobId: `draft-${item.slug}`,
     artifactDir: path.join(dataDir, item.slug)
@@ -46,13 +51,31 @@ function fixture(input: { draftEnabled?: boolean } = {}) {
   }));
   const service = new BatchExecutionService(
     config,
-    { saveDraft, planSchedule },
+    { dryRun, saveDraft, planSchedule },
     pino({ enabled: false })
   );
-  return { dataDir, service, saveDraft, planSchedule };
+  return { dataDir, service, dryRun, saveDraft, planSchedule };
 }
 
 describe("BatchExecutionService", () => {
+  it("executes a safe dry-run batch with mutation flags disabled", async () => {
+    const { service, dryRun } = fixture({ draftEnabled: false });
+    const result = await service.execute({
+      operation: "dry-run",
+      blogs: [blog("blog-1"), blog("blog-2")],
+      items: [
+        { blogKey: "blog-1", article: article("one") },
+        { blogKey: "blog-2", article: article("two") }
+      ]
+    });
+
+    expect(dryRun.mock.calls.map(([input]) => input.blog.blogKey)).toEqual(["blog-1", "blog-2"]);
+    expect(result).toMatchObject({
+      operation: "dry-run",
+      counts: { total: 2, succeeded: 2, failed: 0, skipped: 0 }
+    });
+  });
+
   it("executes multiple articles across multiple blogs and writes a report", async () => {
     const { service, saveDraft } = fixture();
     const result = await service.execute({
@@ -168,5 +191,20 @@ describe("BatchExecutionService", () => {
       ]
     });
     expect(planned.items[0]).toMatchObject({ status: "SUCCEEDED", jobId: "schedule-one" });
+  });
+
+  it("rejects dry-run batches when dry-run is disabled or a mutation flag is enabled", async () => {
+    const manifest = {
+      operation: "dry-run",
+      blogs: [blog("blog-1")],
+      items: [{ blogKey: "blog-1", article: article("one") }]
+    };
+
+    await expect(fixture().service.execute(manifest)).rejects.toThrow(
+      "both mutation flags disabled"
+    );
+    await expect(
+      fixture({ draftEnabled: false, dryRunEnabled: false }).service.execute(manifest)
+    ).rejects.toThrow("ENABLE_DRY_RUN=true");
   });
 });
