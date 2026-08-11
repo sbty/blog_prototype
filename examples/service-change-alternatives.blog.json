@@ -1,0 +1,47 @@
+{
+  "blogKey": "service-change-alternatives-jp-01",
+  "displayName": "サービス終了・代替ナビ",
+  "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+  "publicUrl": "https://service-change-alternatives.example.invalid/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "海外デジタルサービスの終了・仕様変更・料金改定・日本での提供状況・移行先を追跡する実用ガイド",
+  "targetAudience": [
+    "利用中サービスの終了や変更に困っている人",
+    "代替サービスとデータ移行方法を探している人",
+    "海外サービスが日本で使えるか確認したい人",
+    "SaaS・VPN・クラウドサービスを比較検討している人"
+  ],
+  "topicClusters": [
+    "サービス終了・終了予定・存続状況",
+    "無料プラン廃止・料金改定・機能制限",
+    "日本での提供状況・地域制限",
+    "ログイン障害・アカウント移行・データ書き出し",
+    "代替サービス・後継サービス比較",
+    "Spotify・Discord・SNS・メッセージサービス",
+    "Google・Microsoft・クラウドストレージ",
+    "ゲームサービス・VPN・ブラウザ拡張",
+    "サービス変更後の設定・移行手順"
+  ],
+  "excludedTopics": [
+    "終了や仕様変更と関係のない一般ITニュース",
+    "確認できない終了説やリーク情報",
+    "規約違反となる地域制限・認証の回避方法",
+    "移行可能性を確認していないデータ移行手順",
+    "広告報酬だけを根拠にした代替サービス順位"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.25,
+    "durableExplainerRatio": 0.3,
+    "seasonalRatio": 0.05,
+    "newsRatio": 0.4
+  },
+  "targetLength": {
+    "min": 2200,
+    "max": 4500
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

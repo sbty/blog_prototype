@@ -1,0 +1,47 @@
+{
+  "blogKey": "pc-game-troubleshooting-jp-01",
+  "displayName": "PCゲーム問題解決ラボ",
+  "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+  "publicUrl": "https://pc-game-troubleshooting.example.invalid/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "PC・PCゲームで困ったときの症状別トラブル解決、設定判断、性能指標、関連技術の解説",
+  "targetAudience": [
+    "PCゲームのカクつき・発熱・負荷に困っている人",
+    "WindowsやBIOSのゲーム向け設定を確認したい人",
+    "GPU・CPU・VRAM・SSDの数値を判断したい人",
+    "画質・遅延・同期技術を正しく設定したい人"
+  ],
+  "topicClusters": [
+    "GPU・CPU温度と使用率",
+    "VRAM・メモリ・SSD使用率",
+    "カクつき・フリーズ・クラッシュ・低FPS",
+    "Secure Boot・TPM 2.0・アンチチート",
+    "DLSS・FSR・XeSS・フレーム生成",
+    "VSync・G-Sync・FreeSync・入力遅延",
+    "ドライバー・Windows・BIOS設定",
+    "ネットワーク・Ping・パケットロス",
+    "症状別診断・設定別の副作用・復元方法"
+  ],
+  "excludedTopics": [
+    "根拠のないレジストリ最適化や高速化",
+    "セキュリティ機能を無条件で無効化する手順",
+    "チート・アンチチート回避・不正改造",
+    "測定条件が不明な性能比較",
+    "PCトラブルと関係のない一般ゲームニュース"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.5,
+    "durableExplainerRatio": 0.3,
+    "seasonalRatio": 0.05,
+    "newsRatio": 0.15
+  },
+  "targetLength": {
+    "min": 2200,
+    "max": 4800
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

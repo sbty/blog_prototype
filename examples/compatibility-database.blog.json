@@ -1,0 +1,47 @@
+{
+  "blogKey": "compatibility-database-jp-01",
+  "displayName": "互換性チェック研究所",
+  "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+  "publicUrl": "https://compatibility-check-lab.example.invalid/",
+  "language": "ja",
+  "targetCountry": "JP",
+  "primaryTheme": "PC・家電・充電規格・ゲーム機器のA×B互換性を判定根拠と条件付きで蓄積するデータベース兼解説サイト",
+  "targetAudience": [
+    "購入前に機器や規格の互換性を確認したい人",
+    "既存パーツを流用してアップグレードしたい人",
+    "ケーブル・充電器・周辺機器の対応条件を知りたい人",
+    "ゲーム機器やスマートホーム製品を組み合わせたい人"
+  ],
+  "topicClusters": [
+    "CPU・マザーボード・メモリ・クーラー",
+    "PCIe・SSD・GPU・電源",
+    "USB-C・USB4・Thunderbolt・USB PD",
+    "充電器・ケーブル・電力・電圧",
+    "日本と海外の家電・プラグ・周波数",
+    "Matter・Alexa・スマートホーム",
+    "PlayStation・Xbox・Nintendo・Steam Deck",
+    "コントローラー・ヘッドセット・モニター",
+    "対応・非対応・制限付き対応の判定"
+  ],
+  "excludedTopics": [
+    "型番や規格を特定できない互換性判定",
+    "メーカー仕様で確認できない断定",
+    "安全規格を無視した変換・給電方法",
+    "非対応製品を改造して接続する手順",
+    "互換性と関係のない製品ランキング"
+  ],
+  "contentPolicy": {
+    "evergreenRatio": 0.55,
+    "durableExplainerRatio": 0.3,
+    "seasonalRatio": 0.05,
+    "newsRatio": 0.1
+  },
+  "targetLength": {
+    "min": 1800,
+    "max": 4000
+  },
+  "dailyPostLimit": 4,
+  "blogger": {
+    "selectorsPath": "./config/blogger-selectors.json"
+  }
+}

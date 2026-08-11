@@ -83,6 +83,19 @@ PCパーツ・ガジェット・デスク用品ブログ向けの設定例は
 examples/desk-gear-lab.blog.json、対応するBloggerテーマは
 themes/desk-gear-lab-geek.xml にあります。どちらのURLとブログIDも架空値です。
 
+用途別のブログ設定例も `examples/` にあります。
+
+- `travel-rules-lab.blog.json`: 海外旅行の制度・ルール
+- `global-app-spec-lab.blog.json`: 海外アプリ・Webサービスの仕様
+- `game-platform-lab.blog.json`: ゲーム技術・ビジネス・プラットフォーム
+- `japan-practical-answers.blog.json`: 外国人向けの日本制度・生活ルール（英語）
+- `service-change-alternatives.blog.json`: サービス終了・仕様変更・代替サービス
+- `compatibility-database.blog.json`: PC・家電・ゲーム機器の互換性
+- `repair-maintenance-lab.blog.json`: DIY修理・メンテナンス
+- `pc-game-troubleshooting.blog.json`: PC・ゲームのトラブルと設定
+
+これらのURLとブログIDも架空値です。実際に登録する前に投稿先ブログの値へ差し替えてください。
+
 ## dry-run 実行
 
 ```bash
