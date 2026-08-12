@@ -9,12 +9,14 @@ All notable changes to this project are documented in this file.
 - Added a local Phase 6 article-queue compiler that routes completed article candidates to multiple blog configurations and emits an existing batch manifest.
 - Added explicit and taxonomy-based routing with an auditable assignment report.
 - Added provider-neutral generation-package export and strict generated-article import into the Phase 6 queue contract.
+- Added a guarded OpenAI Responses API adapter with Structured Outputs and a free local maximum-cost estimate.
 
 ### Security
 
 - Reject unmatched topics, equal-score routing ties, excluded-topic conflicts, duplicate queue slugs, invalid generated batches, and existing output paths before any downstream batch operation.
 - Keep article-queue preparation independent from the database, browser, Blogger, and external AI providers.
 - Strip Blogger operational URLs and selector paths from exported generation packages, and require complete request, slug, schedule, safe-HTML, and source-attestation integrity on import.
+- Keep paid OpenAI generation default-off, model-allowlisted, exact-cost-confirmed, storage-disabled, tool-free, bounded, and protected by durable one-attempt evidence.
 
 ## [0.2.1] - 2026-08-13
 

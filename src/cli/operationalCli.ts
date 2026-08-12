@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { open, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { openChromeForManualLogin } from "../browser/chromeProfile.js";
 import { BloggerDryRunClient } from "../browser/bloggerDryRun.js";
@@ -17,6 +18,7 @@ import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { ArticleQueueRoutingService } from "../services/articleQueueRoutingService.js";
 import { ArticleGenerationPackageService } from "../services/articleGenerationPackageService.js";
 import { GeneratedArticleImportService } from "../services/generatedArticleImportService.js";
+import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
 import { ScheduleBatchListService } from "../services/scheduleBatchListService.js";
@@ -145,6 +147,65 @@ export async function main(): Promise<void> {
     logger.info(
       { outputPath, requestCount: queue.items.length },
       "Generated articles validated and imported to local queue"
+    );
+    return;
+  }
+  if (args.command === "estimate-openai-generation") {
+    const packagePath = resolve(requiredString(args.options, "package"));
+    const result = new OpenAIArticleGenerationService(config).estimate(
+      await readJsonFile(packagePath)
+    );
+    logger.info(result.estimate, "OpenAI article generation maximum cost estimate");
+    return;
+  }
+  if (args.command === "generate-openai-articles") {
+    const packagePath = resolve(requiredString(args.options, "package"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const confirmationText = requiredString(args.options, "confirm-max-cost-cents");
+    if (!/^[1-9]\d*$/.test(confirmationText)) {
+      throw new Error("OpenAI cost confirmation must be a positive integer number of cents");
+    }
+    if (outputPath === packagePath) {
+      throw new Error("OpenAI generation output must not overwrite its package input");
+    }
+    const packageInput = await readJsonFile<unknown>(packagePath);
+    const service = new OpenAIArticleGenerationService(config);
+    const preflight = service.estimate(packageInput);
+    const confirmedMaximumCostCents = Number(confirmationText);
+    if (confirmedMaximumCostCents !== preflight.estimate.maximumCostCents) {
+      throw new Error(
+        `Cost confirmation must exactly match ${preflight.estimate.maximumCostCents} cents`
+      );
+    }
+    if (!config.ENABLE_ARTICLE_GENERATION) {
+      throw new Error("OpenAI article generation requires ENABLE_ARTICLE_GENERATION=true");
+    }
+    if (!config.OPENAI_API_KEY) {
+      throw new Error("OpenAI article generation requires OPENAI_API_KEY");
+    }
+    const attemptPath = `${outputPath}.attempt.json`;
+    const outputHandle = await open(outputPath, "wx");
+    let result: Awaited<ReturnType<OpenAIArticleGenerationService["execute"]>>;
+    try {
+      await writeNewJsonFile(attemptPath, {
+        schemaVersion: 1,
+        createdAt: new Date().toISOString(),
+        packageSha256: createHash("sha256").update(JSON.stringify(preflight.package)).digest("hex"),
+        estimate: preflight.estimate
+      });
+      result = await service.execute(packageInput, confirmedMaximumCostCents);
+      await outputHandle.writeFile(`${JSON.stringify(result.responses, null, 2)}\n`, "utf8");
+    } finally {
+      await outputHandle.close();
+    }
+    logger.info(
+      {
+        outputPath,
+        attemptPath,
+        responseId: result.responseId,
+        estimate: result.estimate
+      },
+      "OpenAI article generation completed"
     );
     return;
   }
@@ -433,6 +494,8 @@ Commands:
   save-draft --blog <path> --article <path>
   prepare-generation-package --manifest <path> --output <path>
   import-generated-articles --plan <path> --responses <path> --output <path>
+  estimate-openai-generation --package <path>
+  generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
@@ -456,6 +519,8 @@ Dry-run opens Blogger and fills the editor only. It never saves, publishes, or c
 Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms scheduling.
 Prepare-generation-package exports sanitized editorial briefs without calling an AI provider.
 Import-generated-articles validates AI output and source attestations before creating a local queue.
+Estimate-openai-generation calculates a conservative maximum OpenAI token cost without an API call.
+Generate-openai-articles requires an exact cost confirmation and leaves a durable one-attempt marker.
 Prepare-article-queue validates and routes completed article candidates locally without opening Blogger.
 Run-batch performs a validated multi-article dry-run, saves drafts, or creates local schedule plans.
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.

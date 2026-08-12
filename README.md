@@ -149,6 +149,24 @@ npm run dev -- import-generated-articles --plan examples/article-generation-plan
 
 この段階ではAI APIを呼び出さず、APIキーも読み込みません。出典URLの使用申告は事実性や人間による編集承認を保証するものではありません。出力先が存在する場合は上書きしません。
 
+### OpenAI Responses APIアダプター
+
+OpenAI Docsの現行モデル案内に基づき、初期アダプターはコスト重視の `gpt-5.6-luna` だけを許可します。まず無料のローカル見積もりを実行します。
+
+```bash
+npm run dev -- estimate-openai-generation --package data/article-generation-package.json
+```
+
+実行には `.env` の `ENABLE_ARTICLE_GENERATION=true`、`OPENAI_API_KEY`、各種上限と、見積もり結果に表示された最大金額（セント）の完全一致確認が必要です。
+
+```bash
+npm run dev -- generate-openai-articles --package data/article-generation-package.json --output data/generated-article-responses.json --confirm-max-cost-cents <cents>
+```
+
+アダプターはResponses APIのStructured Outputsを使用し、`store: false`、外部ツールなしで実行します。出力先を先に予約し、通信前に `.attempt.json` を作成するため、失敗時も自動再試行しません。最大料金は2026-08-13時点の公式Luna単価の5倍を使った保守的なアプリ内見積もりです。実際の課金を保証するものではないため、OpenAIプロジェクト側にも支出上限を設定してください。
+
+生成結果はそのまま記事キューにはなりません。前項の `import-generated-articles` で独立検証してから取り込みます。
+
 ## 記事キューのブログ振り分け
 
 Phase 6 の最初の機能として、完成済みの記事候補をローカルで検証し、ブログ設定の `primaryTheme`、`topicClusters`、`excludedTopics` に基づいて既存バッチ形式へ振り分けられます。

@@ -24,7 +24,18 @@ function intFromString(defaultValue: string) {
     .regex(/^[1-9]\d*$/, "Expected a positive integer")
     .optional()
     .default(defaultValue)
-    .transform((value) => Number(value));
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive().max(Number.MAX_SAFE_INTEGER));
+}
+
+function boundedIntFromString(defaultValue: string, min: number, max: number) {
+  return z
+    .string()
+    .regex(/^[1-9]\d*$/, "Expected a positive integer")
+    .optional()
+    .default(defaultValue)
+    .transform((value) => Number(value))
+    .pipe(z.number().int().min(min).max(max));
 }
 
 function numberFromString(defaultValue: string, min: number, max: number) {
@@ -78,8 +89,13 @@ const envSchema = z.object({
   DATABASE_PATH: localPathSchema.default("./data/app.sqlite"),
   DATA_DIR: localPathSchema.default("./data"),
   OPENAI_API_KEY: z.string().optional().default(""),
-  OPENAI_TEXT_MODEL: z.string().optional().default(""),
+  OPENAI_TEXT_MODEL: z.string().trim().min(1).optional().default("gpt-5.6-luna"),
   OPENAI_IMAGE_MODEL: z.string().optional().default(""),
+  OPENAI_MAX_GENERATION_REQUESTS: boundedIntFromString("5", 1, 50),
+  OPENAI_MAX_INPUT_BYTES: boundedIntFromString("200000", 1, 2_000_000),
+  OPENAI_MAX_OUTPUT_TOKENS: boundedIntFromString("12000", 1, 128_000),
+  OPENAI_MAX_COST_CENTS: boundedIntFromString("10", 1, 10_000),
+  OPENAI_REQUEST_TIMEOUT_MS: boundedIntFromString("120000", 1_000, 600_000),
   CHROME_CHANNEL: z.string().optional().default("chrome"),
   CHROME_EXECUTABLE_PATH: z.string().optional().default(""),
   CHROME_PROFILE_PATH: z.string().optional().default(""),
@@ -88,7 +104,7 @@ const envSchema = z.object({
   AUTHORIZED_TEST_BLOG_ID: optionalBloggerBlogIdSchema.optional().default(""),
   AUTHORIZED_BLOG_IDS: bloggerBlogIdsSchema,
   ENABLE_AUTO_TOPIC_SELECTION: boolFromString("false"),
-  ENABLE_ARTICLE_GENERATION: boolFromString("true"),
+  ENABLE_ARTICLE_GENERATION: boolFromString("false"),
   ENABLE_IMAGE_GENERATION: boolFromString("true"),
   ENABLE_DRY_RUN: boolFromString("true"),
   ENABLE_DRAFT_SAVE: boolFromString("false"),

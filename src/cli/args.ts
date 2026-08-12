@@ -22,6 +22,11 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     options: ["plan", "responses", "output"],
     requiresDatabase: false
   },
+  "estimate-openai-generation": { options: ["package"], requiresDatabase: false },
+  "generate-openai-articles": {
+    options: ["package", "output", "confirm-max-cost-cents"],
+    requiresDatabase: false
+  },
   "prepare-article-queue": { options: ["manifest", "output"], requiresDatabase: false },
   "run-batch": { options: ["manifest"], requiresDatabase: true },
   "run-schedule-batch": { options: ["manifest"], requiresDatabase: true },
