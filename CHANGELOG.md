@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [0.2.1] - 2026-08-13
+
+### Added
+
+- Added a non-saving `dry-run` operation for multi-blog article batches, including per-item evidence and the existing fail-fast, continue-on-error, and STOP behavior.
+
+### Security
+
+- Require every dry-run blog configuration to reference an existing dedicated Blogger draft editor URL before any browser operation begins.
+- Reject Blogger new-post URLs during dry-run so merely opening an editor cannot leave an unintended empty draft.
+- Preserve default-off Blogger mutation flags; this release does not authorize another save, schedule, publish, or delete operation.
+
 ## [0.2.0] - 2026-08-11
 
 ### Added
@@ -67,6 +79,7 @@ All notable changes to this project are documented in this file.
 - This release does not authorize another Blogger mutation, another blog, unattended publishing, production rollout, or unbounded retries.
 - Expanding the execution scope requires explicit authorization, separate acceptance criteria, a safety review, and an ADR.
 
+[0.2.1]: https://github.com/sbty/blog_prototype/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sbty/blog_prototype/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/sbty/blog_prototype/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/sbty/blog_prototype/releases/tag/v0.1.0
