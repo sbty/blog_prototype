@@ -133,6 +133,22 @@ npm run dev -- save-draft --blog examples/blog.example.json --article examples/a
 
 `draft.json` には保存結果に加えて `preSaveAudit` を記録します。
 
+## AI記事生成のローカルexport/import境界
+
+Phase 6では、外部AIへ接続する前に生成指示と生成結果の契約を固定します。生成計画から、Blogger管理URL・公開URL・エディタURL・セレクター情報を除いたプロバイダー中立の生成パッケージを作成できます。
+
+```bash
+npm run dev -- prepare-generation-package --manifest examples/article-generation-plan.example.json --output data/article-generation-package.json
+```
+
+AIが返すJSONは [`examples/generated-article-responses.example.json`](examples/generated-article-responses.example.json) の形式です。生成結果を取り込むときは、依頼ID、slug、予約時刻、全出典URLの使用申告、記事スキーマ、安全なHTMLを一括検証し、成功時だけ記事キューを新規作成します。検証済みの生成依頼IDと出典URLはキューの `provenance` に保持されます。
+
+```bash
+npm run dev -- import-generated-articles --plan examples/article-generation-plan.example.json --responses examples/generated-article-responses.example.json --output data/generated-article-queue.json
+```
+
+この段階ではAI APIを呼び出さず、APIキーも読み込みません。出典URLの使用申告は事実性や人間による編集承認を保証するものではありません。出力先が存在する場合は上書きしません。
+
 ## 記事キューのブログ振り分け
 
 Phase 6 の最初の機能として、完成済みの記事候補をローカルで検証し、ブログ設定の `primaryTheme`、`topicClusters`、`excludedTopics` に基づいて既存バッチ形式へ振り分けられます。

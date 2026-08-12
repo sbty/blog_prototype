@@ -20,6 +20,34 @@ describe("parseArgs", () => {
       options: { manifest: "queue.json", output: "batch.json" }
     });
   });
+  it("parses local generation export and import commands", () => {
+    expect(
+      parseArgs([
+        "prepare-generation-package",
+        "--manifest",
+        "plan.json",
+        "--output",
+        "package.json"
+      ])
+    ).toEqual({
+      command: "prepare-generation-package",
+      options: { manifest: "plan.json", output: "package.json" }
+    });
+    expect(
+      parseArgs([
+        "import-generated-articles",
+        "--plan",
+        "plan.json",
+        "--responses",
+        "responses.json",
+        "--output",
+        "queue.json"
+      ])
+    ).toEqual({
+      command: "import-generated-articles",
+      options: { plan: "plan.json", responses: "responses.json", output: "queue.json" }
+    });
+  });
   it("parses a schedule batch manifest command", () => {
     expect(parseArgs(["run-schedule-batch", "--manifest", "schedule-batch.json"])).toEqual({
       command: "run-schedule-batch",
@@ -182,6 +210,8 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("audit-drafts")).toBe(false);
     expect(commandRequiresDatabase("audit-published-post")).toBe(false);
     expect(commandRequiresDatabase("prepare-article-queue")).toBe(false);
+    expect(commandRequiresDatabase("prepare-generation-package")).toBe(false);
+    expect(commandRequiresDatabase("import-generated-articles")).toBe(false);
     expect(commandRequiresDatabase("inspect-schedule-batch")).toBe(false);
     expect(commandRequiresDatabase("list-schedule-batches")).toBe(false);
     expect(commandRequiresDatabase("execute-schedule")).toBe(true);
