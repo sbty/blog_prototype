@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { openChromeForManualLogin } from "../browser/chromeProfile.js";
 import { BloggerDryRunClient } from "../browser/bloggerDryRun.js";
@@ -14,6 +14,7 @@ import { JobRepository } from "../repositories/jobRepository.js";
 import { DryRunService } from "../services/dryRunService.js";
 import { DraftSaveService } from "../services/draftSaveService.js";
 import { BatchExecutionService } from "../services/batchExecutionService.js";
+import { ArticleQueueRoutingService } from "../services/articleQueueRoutingService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
 import { ScheduleBatchListService } from "../services/scheduleBatchListService.js";
@@ -90,6 +91,23 @@ export async function main(): Promise<void> {
     );
     const result = await new PublishedPostAuditService().execute({ blog, article });
     logger.info(result, "Published post audit result");
+    return;
+  }
+  if (args.command === "prepare-article-queue") {
+    const inputPath = resolve(requiredString(args.options, "manifest"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if (inputPath === outputPath) {
+      throw new Error("Article queue input and output paths must differ");
+    }
+    const result = new ArticleQueueRoutingService().execute(await readJsonFile(inputPath));
+    await writeFile(outputPath, `${JSON.stringify(result.manifest, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    logger.info(
+      { outputPath, assignments: result.assignments },
+      "Article queue routed to batch manifest"
+    );
     return;
   }
   if (args.command === "list-schedule-batches") {
@@ -375,6 +393,7 @@ Commands:
   audit-published-post --blog <path> --article <path>
   dry-run --blog <path> --article <path>
   save-draft --blog <path> --article <path>
+  prepare-article-queue --manifest <path> --output <path>
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
   inspect-schedule-batch --batch <batchId>
@@ -395,7 +414,8 @@ Commands:
 
 Dry-run opens Blogger and fills the editor only. It never saves, publishes, or confirms scheduling.
 Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms scheduling.
-Run-batch executes multiple draft saves or creates multiple local schedule plans from one manifest.
+Prepare-article-queue validates and routes completed article candidates locally without opening Blogger.
+Run-batch performs a validated multi-article dry-run, saves drafts, or creates local schedule plans.
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.
 Inspect-schedule-batch validates a batch report and companion manifests without writing state.
 List-schedule-batches summarizes all schedule batch states without writing state.

@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Added a local Phase 6 article-queue compiler that routes completed article candidates to multiple blog configurations and emits an existing batch manifest.
+- Added explicit and taxonomy-based routing with an auditable assignment report.
+
+### Security
+
+- Reject unmatched topics, equal-score routing ties, excluded-topic conflicts, duplicate queue slugs, invalid generated batches, and existing output paths before any downstream batch operation.
+- Keep article-queue preparation independent from the database, browser, Blogger, and external AI providers.
+
 ## [0.2.1] - 2026-08-13
 
 ### Added

@@ -12,6 +12,14 @@ describe("parseArgs", () => {
       options: { manifest: "batch.json" }
     });
   });
+  it("parses a local article queue preparation command", () => {
+    expect(
+      parseArgs(["prepare-article-queue", "--manifest", "queue.json", "--output", "batch.json"])
+    ).toEqual({
+      command: "prepare-article-queue",
+      options: { manifest: "queue.json", output: "batch.json" }
+    });
+  });
   it("parses a schedule batch manifest command", () => {
     expect(parseArgs(["run-schedule-batch", "--manifest", "schedule-batch.json"])).toEqual({
       command: "run-schedule-batch",
@@ -173,6 +181,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("open-login")).toBe(false);
     expect(commandRequiresDatabase("audit-drafts")).toBe(false);
     expect(commandRequiresDatabase("audit-published-post")).toBe(false);
+    expect(commandRequiresDatabase("prepare-article-queue")).toBe(false);
     expect(commandRequiresDatabase("inspect-schedule-batch")).toBe(false);
     expect(commandRequiresDatabase("list-schedule-batches")).toBe(false);
     expect(commandRequiresDatabase("execute-schedule")).toBe(true);

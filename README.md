@@ -133,6 +133,18 @@ npm run dev -- save-draft --blog examples/blog.example.json --article examples/a
 
 `draft.json` には保存結果に加えて `preSaveAudit` を記録します。
 
+## 記事キューのブログ振り分け
+
+Phase 6 の最初の機能として、完成済みの記事候補をローカルで検証し、ブログ設定の `primaryTheme`、`topicClusters`、`excludedTopics` に基づいて既存バッチ形式へ振り分けられます。
+
+```bash
+npm run dev -- prepare-article-queue --manifest examples/article-queue.example.json --output data/article-batch.json
+```
+
+各項目の `routing.blogKey` で投稿先を明示するか、`routing.topics` を指定します。トピックによる自動振り分けは、唯一の最高スコア候補がある場合だけ成功します。一致なし、同点、除外トピックとの衝突、重複slugは推測せずに全体を拒否します。出力先がすでに存在する場合も上書きしません。
+
+このコマンドはデータベース、ブラウザ、Blogger、外部AIサービスを使用しません。出力されたバッチを実行する権限も付与しません。実行時は従来どおり機能フラグと各安全境界が適用されます。
+
 ## 複数ブログ・複数記事バッチ
 
 [`examples/batch.example.json`](examples/batch.example.json) のように、ブログ一覧と投稿記事一覧を1ファイルへまとめます。各記事の `blogKey` が投稿先ブログを指定します。入力全体を検証してから1件ずつ順番に処理し、結果を `data/jobs/<batchId>/batch-result.json` に保存します。
