@@ -1,10 +1,29 @@
 import { describe, expect, it } from "vitest";
+import { requireDryRunEditorTarget } from "../browser/bloggerDryRun.js";
 import {
   extractBloggerBlogId,
   validateBloggerEditorIdentity
 } from "../browser/bloggerEditorIdentity.js";
 
 describe("Blogger editor identity", () => {
+  it("requires an existing dedicated draft URL for safe dry-runs", () => {
+    expect(() =>
+      requireDryRunEditorTarget(
+        "https://www.blogger.com/blog/posts/123",
+        "https://www.blogger.com/blog/post/edit/123/456"
+      )
+    ).not.toThrow();
+    expect(() =>
+      requireDryRunEditorTarget("https://www.blogger.com/blog/posts/123", undefined)
+    ).toThrow("opening New Post creates a Blogger draft");
+    expect(() =>
+      requireDryRunEditorTarget(
+        "https://www.blogger.com/blog/posts/123",
+        "https://www.blogger.com/blog/post/edit/999/456"
+      )
+    ).toThrow("must belong to the configured blog");
+  });
+
   it("extracts blog IDs from list and editor URLs", () => {
     expect(extractBloggerBlogId("https://www.blogger.com/blog/posts/123")).toBe("123");
     expect(extractBloggerBlogId("https://www.blogger.com/blog/post/edit/456/789")).toBe("456");

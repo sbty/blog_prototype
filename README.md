@@ -137,7 +137,7 @@ npm run dev -- save-draft --blog examples/blog.example.json --article examples/a
 
 [`examples/batch.example.json`](examples/batch.example.json) のように、ブログ一覧と投稿記事一覧を1ファイルへまとめます。各記事の `blogKey` が投稿先ブログを指定します。入力全体を検証してから1件ずつ順番に処理し、結果を `data/jobs/<batchId>/batch-result.json` に保存します。
 
-既定のサンプルは `operation: "dry-run"` です。Blogger投稿エディタへ記事を入力してスクリーンショットを取得しますが、保存ボタンは押しません。`ENABLE_DRY_RUN=true`、`ENABLE_DRAFT_SAVE=false`、`ENABLE_SCHEDULED_POST=false` で実行します。
+既定のサンプルは `operation: "dry-run"` です。Blogger投稿エディタへ記事を入力してスクリーンショットを取得しますが、保存ボタンは押しません。Bloggerでは「新しい投稿」を開くだけで空下書きが作成されるため、各ブログの `blogger.postEditorUrl` に、事前に作成済みの専用下書き編集URLを指定する必要があります。URLがない場合はバッチ全体を開始前に拒否します。`ENABLE_DRY_RUN=true`、`ENABLE_DRAFT_SAVE=false`、`ENABLE_SCHEDULED_POST=false` で実行します。
 
 ```bash
 npm run dev -- run-batch --manifest examples/batch.example.json
