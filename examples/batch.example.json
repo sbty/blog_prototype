@@ -1,5 +1,5 @@
 {
-  "operation": "save-drafts",
+  "operation": "dry-run",
   "continueOnError": true,
   "blogs": [
     {

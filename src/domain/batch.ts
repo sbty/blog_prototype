@@ -4,7 +4,7 @@ import { articleInputSchema } from "./article.js";
 
 export const batchManifestSchema = z
   .object({
-    operation: z.enum(["save-drafts", "plan-schedules"]),
+    operation: z.enum(["dry-run", "save-drafts", "plan-schedules"]),
     continueOnError: z.boolean().default(true),
     blogs: z.array(blogConfigSchema).min(1).max(50),
     items: z

@@ -48,6 +48,7 @@ export class BatchExecutionService {
   constructor(
     private readonly config: AppConfig,
     private readonly executors: {
+      dryRun: ItemExecutor;
       saveDraft: ItemExecutor;
       planSchedule: ItemExecutor;
     },
@@ -72,9 +73,11 @@ export class BatchExecutionService {
       try {
         await assertNotStopped(this.config.DATA_DIR);
         const executor =
-          manifest.operation === "save-drafts"
-            ? this.executors.saveDraft
-            : this.executors.planSchedule;
+          manifest.operation === "dry-run"
+            ? this.executors.dryRun
+            : manifest.operation === "save-drafts"
+              ? this.executors.saveDraft
+              : this.executors.planSchedule;
         const executed = await executor({ blog, article: item.article });
         results.push({
           index,
@@ -143,6 +146,18 @@ export class BatchExecutionService {
   }
 
   private assertOperationEnabled(operation: BatchManifest["operation"]): void {
+    if (operation === "dry-run") {
+      if (
+        !this.config.ENABLE_DRY_RUN ||
+        this.config.ENABLE_DRAFT_SAVE ||
+        this.config.ENABLE_SCHEDULED_POST
+      ) {
+        throw new Error(
+          "Batch dry-run requires ENABLE_DRY_RUN=true and both mutation flags disabled"
+        );
+      }
+      return;
+    }
     if (operation === "save-drafts") {
       if (!this.config.ENABLE_DRAFT_SAVE || this.config.ENABLE_SCHEDULED_POST) {
         throw new Error(
