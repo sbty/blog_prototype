@@ -7,6 +7,9 @@ describe("loadConfig", () => {
     expect(config.APP_TIMEZONE).toBe("Asia/Tokyo");
     expect(config.ENABLE_DRY_RUN).toBe(true);
     expect(config.ENABLE_DRAFT_SAVE).toBe(false);
+    expect(config.ENABLE_ARTICLE_GENERATION).toBe(false);
+    expect(config.OPENAI_TEXT_MODEL).toBe("gpt-5.6-luna");
+    expect(config.OPENAI_MAX_COST_CENTS).toBe(10);
     expect(config.MIN_CONFIDENCE).toBe(0.65);
   });
 
@@ -78,6 +81,18 @@ describe("loadConfig", () => {
   });
   it("rejects an invalid boolean flag instead of silently disabling it", () => {
     expect(() => loadConfig({ ENABLE_SCHEDULED_POST: "treu" })).toThrow("Expected a boolean value");
+  });
+  it("parses legacy OpenAI model names without authorizing their use and rejects unsafe limits", () => {
+    expect(loadConfig({ OPENAI_TEXT_MODEL: "legacy-model" }).OPENAI_TEXT_MODEL).toBe(
+      "legacy-model"
+    );
+    expect(() => loadConfig({ OPENAI_MAX_COST_CENTS: "0" })).toThrow("Expected a positive integer");
+    expect(() => loadConfig({ OPENAI_MAX_OUTPUT_TOKENS: "unlimited" })).toThrow(
+      "Expected a positive integer"
+    );
+    expect(() => loadConfig({ OPENAI_MAX_OUTPUT_TOKENS: "128001" })).toThrow();
+    expect(() => loadConfig({ OPENAI_REQUEST_TIMEOUT_MS: "999" })).toThrow();
+    expect(() => loadConfig({ SYSTEM_DAILY_POST_LIMIT: "9".repeat(400) })).toThrow();
   });
 
   it("parses supported boolean aliases case-insensitively", () => {
