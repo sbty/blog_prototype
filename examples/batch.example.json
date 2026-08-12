@@ -7,14 +7,20 @@
       "displayName": "Example Blog A",
       "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
       "primaryTheme": "technology",
-      "dailyPostLimit": 2
+      "dailyPostLimit": 2,
+      "blogger": {
+        "postEditorUrl": "https://www.blogger.com/blog/post/edit/1234567890123456789/1111111111111111111"
+      }
     },
     {
       "blogKey": "example-blog-b",
       "displayName": "Example Blog B",
       "adminUrl": "https://www.blogger.com/blog/posts/9876543210987654321",
       "primaryTheme": "travel",
-      "dailyPostLimit": 2
+      "dailyPostLimit": 2,
+      "blogger": {
+        "postEditorUrl": "https://www.blogger.com/blog/post/edit/9876543210987654321/2222222222222222222"
+      }
     }
   ],
   "items": [

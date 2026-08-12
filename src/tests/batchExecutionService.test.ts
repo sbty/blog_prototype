@@ -8,11 +8,15 @@ import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { StopRequestedError } from "../system/stop.js";
 
 function blog(blogKey: string) {
+  const blogId = blogKey === "blog-1" ? "1111111111" : "2222222222";
   return {
     blogKey,
     displayName: `Blog ${blogKey}`,
-    adminUrl: `https://www.blogger.com/blog/posts/${blogKey === "blog-1" ? "1111111111" : "2222222222"}`,
-    primaryTheme: "testing"
+    adminUrl: `https://www.blogger.com/blog/posts/${blogId}`,
+    primaryTheme: "testing",
+    blogger: {
+      postEditorUrl: `https://www.blogger.com/blog/post/edit/${blogId}/3333333333`
+    }
   };
 }
 
@@ -206,5 +210,20 @@ describe("BatchExecutionService", () => {
     await expect(
       fixture({ draftEnabled: false, dryRunEnabled: false }).service.execute(manifest)
     ).rejects.toThrow("ENABLE_DRY_RUN=true");
+  });
+
+  it("rejects the entire dry-run batch when a dedicated draft URL is missing", async () => {
+    const unsafeBlog = blog("blog-1");
+    delete (unsafeBlog as { blogger?: unknown }).blogger;
+    const { service, dryRun } = fixture({ draftEnabled: false });
+
+    await expect(
+      service.execute({
+        operation: "dry-run",
+        blogs: [unsafeBlog],
+        items: [{ blogKey: "blog-1", article: article("one") }]
+      })
+    ).rejects.toThrow("existing dedicated draft postEditorUrl");
+    expect(dryRun).not.toHaveBeenCalled();
   });
 });

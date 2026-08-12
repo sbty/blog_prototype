@@ -5,7 +5,7 @@ import type { AppConfig } from "../config/env.js";
 import type { ArticleInput } from "../domain/article.js";
 import type { BloggerSelectors } from "./bloggerSelectors.js";
 import { BloggerImageUploader, type ImageUploadResult } from "./bloggerImageUploader.js";
-import { validateBloggerEditorIdentity } from "./bloggerEditorIdentity.js";
+import { extractBloggerBlogId, validateBloggerEditorIdentity } from "./bloggerEditorIdentity.js";
 import { BloggerPostSettings, type PostSettingsResult } from "./bloggerPostSettings.js";
 import { BloggerSchedulePreview, type SchedulePreviewValue } from "./bloggerSchedulePreview.js";
 import { detectBloggerSessionIssue } from "./bloggerSessionGuard.js";
@@ -58,6 +58,41 @@ export interface DryRunResult {
   postSettings: PostSettingsResult;
   schedulePreview?: SchedulePreviewValue;
   networkGuard: DryRunNetworkGuardResult;
+}
+
+export function requireDryRunEditorTarget(
+  adminUrl: string,
+  postEditorUrl: string | undefined
+): asserts postEditorUrl is string {
+  if (!postEditorUrl) {
+    throw new Error(
+      "Dry-run requires blogger.postEditorUrl for an existing dedicated draft because opening New Post creates a Blogger draft"
+    );
+  }
+  const configuredBlogId = extractBloggerBlogId(adminUrl);
+  let editorUrl: URL;
+  try {
+    editorUrl = new URL(postEditorUrl);
+  } catch {
+    throw new Error("Dry-run blogger.postEditorUrl is not a valid URL");
+  }
+  const editorMatch = editorUrl.pathname.match(/^\/blog\/post\/edit\/(\d+)\/(\d+)\/?$/);
+  if (
+    editorUrl.protocol !== "https:" ||
+    !["www.blogger.com", "blogger.com"].includes(editorUrl.hostname) ||
+    editorUrl.username ||
+    editorUrl.password ||
+    editorUrl.search ||
+    editorUrl.hash ||
+    !editorMatch
+  ) {
+    throw new Error(
+      "Dry-run blogger.postEditorUrl must identify an existing Blogger draft edit URL"
+    );
+  }
+  if (!configuredBlogId || configuredBlogId !== editorMatch[1]) {
+    throw new Error("Dry-run blogger.postEditorUrl must belong to the configured blog");
+  }
 }
 
 export function requireDraftMutationGuard(
@@ -121,6 +156,7 @@ export class BloggerDryRunClient {
     if (this.config.ENABLE_DRAFT_SAVE || this.config.ENABLE_SCHEDULED_POST) {
       throw new Error("Dry-run refuses to run while publish-capable flags are enabled");
     }
+    requireDryRunEditorTarget(input.adminUrl, input.postEditorUrl);
 
     const context = await this.openContext();
     try {
@@ -525,6 +561,7 @@ export class BloggerDryRunClient {
       await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => undefined);
       if (await this.firstEditable(page.locator(this.selectors.titleInput), 5000)) return;
     }
+
     const newPost = await this.firstVisible(page.locator(this.selectors.newPostButton), 15000);
     if (!newPost) {
       const diagnostic = await this.writeDiagnostic(page, artifactDir, "new-post-button-not-found");

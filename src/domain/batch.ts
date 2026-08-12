@@ -31,6 +31,13 @@ export const batchManifestSchema = z
         });
       }
       blogKeys.add(blog.blogKey);
+      if (manifest.operation === "dry-run" && !blog.blogger.postEditorUrl) {
+        context.addIssue({
+          code: "custom",
+          path: ["blogs", index, "blogger", "postEditorUrl"],
+          message: "Dry-run batches require an existing dedicated draft postEditorUrl"
+        });
+      }
     });
 
     const assignments = new Set<string>();
