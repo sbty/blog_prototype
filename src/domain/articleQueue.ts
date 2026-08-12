@@ -2,6 +2,15 @@ import { z } from "zod";
 import { blogConfigSchema } from "../config/blogConfig.js";
 import { articleInputSchema } from "./article.js";
 
+function isSafeHttpsUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 const routingSchema = z
   .object({
     blogKey: z.string().trim().min(1).max(200).optional(),
@@ -11,6 +20,20 @@ const routingSchema = z
   .refine((routing) => routing.blogKey || routing.topics.length > 0, {
     message: "Queue routing requires blogKey or at least one topic"
   });
+
+const provenanceSchema = z
+  .object({
+    generationRequestId: z.string().trim().min(1).max(100),
+    sourceUrls: z
+      .array(
+        z.string().url().max(4096).refine(isSafeHttpsUrl, {
+          message: "Provenance source URL must use HTTPS"
+        })
+      )
+      .min(1)
+      .max(30)
+  })
+  .strict();
 
 export const articleQueueManifestSchema = z
   .object({
@@ -22,7 +45,8 @@ export const articleQueueManifestSchema = z
         z
           .object({
             article: articleInputSchema,
-            routing: routingSchema
+            routing: routingSchema,
+            provenance: provenanceSchema.optional()
           })
           .strict()
       )

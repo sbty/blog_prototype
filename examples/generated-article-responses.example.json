@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "requestId": "usb-c-charger-handheld-pc",
+      "article": {
+        "title": "Can a USB-C Laptop Charger Power a Handheld PC?",
+        "html": "<h2>Check the charging standards first</h2><p>A compatible charger and device negotiate voltage and current before normal charging begins.</p><h2>Fallback charging may be slower</h2><p>Confirm the supported profiles, cable rating, and required wattage in the official specifications.</p>",
+        "labels": ["USB-C", "USB PD", "compatibility"],
+        "searchDescription": "Learn how to check USB-C charger, cable, and handheld PC compatibility before connecting them.",
+        "slug": "usb-c-charger-handheld-pc-compatibility"
+      },
+      "sourceUrlsUsed": [
+        "https://example.com/usb-pd-source",
+        "https://example.org/device-power-source"
+      ]
+    }
+  ]
+}

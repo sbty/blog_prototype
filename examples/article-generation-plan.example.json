@@ -1,0 +1,35 @@
+{
+  "targetOperation": "save-drafts",
+  "continueOnError": true,
+  "blogs": [
+    {
+      "blogKey": "compatibility-lab-example",
+      "displayName": "Compatibility Lab Example",
+      "adminUrl": "https://www.blogger.com/blog/posts/1234567890123456789",
+      "language": "en",
+      "targetCountry": "US",
+      "primaryTheme": "PC and device compatibility",
+      "targetAudience": ["People checking compatibility before purchasing"],
+      "topicClusters": ["USB-C and USB PD", "PC component compatibility"],
+      "excludedTopics": ["unsafe electrical modifications"],
+      "targetLength": { "min": 1800, "max": 3500 },
+      "dailyPostLimit": 2
+    }
+  ],
+  "requests": [
+    {
+      "requestId": "usb-c-charger-handheld-pc",
+      "blogKey": "compatibility-lab-example",
+      "slug": "usb-c-charger-handheld-pc-compatibility",
+      "topic": "Can a USB-C laptop charger safely power a handheld PC?",
+      "searchIntent": "Determine compatibility before reusing an existing charger.",
+      "routingTopics": ["USB-C and USB PD"],
+      "requiredPoints": [
+        "Explain USB PD voltage and wattage negotiation.",
+        "Separate safe fallback charging from full-speed charging.",
+        "Tell readers which labels and specifications to check."
+      ],
+      "sourceUrls": ["https://example.com/usb-pd-source", "https://example.org/device-power-source"]
+    }
+  ]
+}

@@ -15,6 +15,8 @@ import { DryRunService } from "../services/dryRunService.js";
 import { DraftSaveService } from "../services/draftSaveService.js";
 import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { ArticleQueueRoutingService } from "../services/articleQueueRoutingService.js";
+import { ArticleGenerationPackageService } from "../services/articleGenerationPackageService.js";
+import { GeneratedArticleImportService } from "../services/generatedArticleImportService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
 import { ScheduleBatchListService } from "../services/scheduleBatchListService.js";
@@ -48,6 +50,13 @@ function requiredString(options: Record<string, string>, key: string): string {
 
 async function readJsonFile<T>(filePath: string): Promise<T> {
   return parseJsonWithBom<T>(await readFile(resolve(filePath), "utf8"));
+}
+
+async function writeNewJsonFile(filePath: string, value: unknown): Promise<void> {
+  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, {
+    encoding: "utf8",
+    flag: "wx"
+  });
 }
 
 export async function main(): Promise<void> {
@@ -100,13 +109,42 @@ export async function main(): Promise<void> {
       throw new Error("Article queue input and output paths must differ");
     }
     const result = new ArticleQueueRoutingService().execute(await readJsonFile(inputPath));
-    await writeFile(outputPath, `${JSON.stringify(result.manifest, null, 2)}\n`, {
-      encoding: "utf8",
-      flag: "wx"
-    });
+    await writeNewJsonFile(outputPath, result.manifest);
     logger.info(
       { outputPath, assignments: result.assignments },
       "Article queue routed to batch manifest"
+    );
+    return;
+  }
+  if (args.command === "prepare-generation-package") {
+    const inputPath = resolve(requiredString(args.options, "manifest"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if (inputPath === outputPath) {
+      throw new Error("Article generation plan and output paths must differ");
+    }
+    const result = new ArticleGenerationPackageService().execute(await readJsonFile(inputPath));
+    await writeNewJsonFile(outputPath, result.package);
+    logger.info(
+      { outputPath, requestIds: result.package.requests.map((request) => request.requestId) },
+      "Local article generation package prepared"
+    );
+    return;
+  }
+  if (args.command === "import-generated-articles") {
+    const planPath = resolve(requiredString(args.options, "plan"));
+    const responsesPath = resolve(requiredString(args.options, "responses"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if (outputPath === planPath || outputPath === responsesPath) {
+      throw new Error("Generated article import output must not overwrite an input file");
+    }
+    const queue = new GeneratedArticleImportService().execute(
+      await readJsonFile(planPath),
+      await readJsonFile(responsesPath)
+    );
+    await writeNewJsonFile(outputPath, queue);
+    logger.info(
+      { outputPath, requestCount: queue.items.length },
+      "Generated articles validated and imported to local queue"
     );
     return;
   }
@@ -393,6 +431,8 @@ Commands:
   audit-published-post --blog <path> --article <path>
   dry-run --blog <path> --article <path>
   save-draft --blog <path> --article <path>
+  prepare-generation-package --manifest <path> --output <path>
+  import-generated-articles --plan <path> --responses <path> --output <path>
   prepare-article-queue --manifest <path> --output <path>
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
@@ -414,6 +454,8 @@ Commands:
 
 Dry-run opens Blogger and fills the editor only. It never saves, publishes, or confirms scheduling.
 Save-draft requires ENABLE_DRAFT_SAVE=true and never clicks Publish or confirms scheduling.
+Prepare-generation-package exports sanitized editorial briefs without calling an AI provider.
+Import-generated-articles validates AI output and source attestations before creating a local queue.
 Prepare-article-queue validates and routes completed article candidates locally without opening Blogger.
 Run-batch performs a validated multi-article dry-run, saves drafts, or creates local schedule plans.
 Run-schedule-batch approves, prepares evidence for, or executes multiple scheduled jobs from one manifest.

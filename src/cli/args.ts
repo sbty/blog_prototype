@@ -17,6 +17,11 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
   "audit-published-post": { options: ["blog", "article"], requiresDatabase: false },
   "dry-run": { options: ["blog", "article"], requiresDatabase: true },
   "save-draft": { options: ["blog", "article"], requiresDatabase: true },
+  "prepare-generation-package": { options: ["manifest", "output"], requiresDatabase: false },
+  "import-generated-articles": {
+    options: ["plan", "responses", "output"],
+    requiresDatabase: false
+  },
   "prepare-article-queue": { options: ["manifest", "output"], requiresDatabase: false },
   "run-batch": { options: ["manifest"], requiresDatabase: true },
   "run-schedule-batch": { options: ["manifest"], requiresDatabase: true },
