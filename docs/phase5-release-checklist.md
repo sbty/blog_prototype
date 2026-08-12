@@ -5,7 +5,7 @@
 - [x] Scoped formatting passes.
 - [x] ESLint passes.
 - [x] TypeScript build passes.
-- [x] All 43 test files and 362 tests pass.
+- [x] All 43 test files and 366 tests pass.
 - [x] Compiled scheduled-execution boundary verification passes.
 - [x] A clean shallow clone can run `npm ci` and the complete local gate without local runtime data.
 - [x] Production and development dependency audits report zero known vulnerabilities.
@@ -43,6 +43,6 @@ These items are not release defects. They are deliberately excluded capabilities
 ## Version-control and release handoff
 
 - The source is committed to the protected `main` branch of `sbty/blog_prototype`; changes require a pull request and successful required checks.
-- [`v0.2.0`](https://github.com/sbty/blog_prototype/releases/tag/v0.2.0) is the guarded stable release snapshot of the completed two-blog acceptance scope. It does not expand authority to additional posts, a third blog, unattended publication, or production.
+- [`v0.2.1`](https://github.com/sbty/blog_prototype/releases/tag/v0.2.1) is the guarded stable release snapshot. It adds safe multi-blog dry-run support on top of the completed two-blog acceptance scope and requires existing dedicated draft editor URLs so opening a new-post editor cannot leave an unintended empty draft. It does not expand authority to additional saves, posts, deletions, blogs, unattended publication, or production.
 - Any future release or scope expansion is a separate maintainer decision. Review the current release scope, successful CI and code-scanning results, and the exclusions above before publishing it.
 - `.env`, `data`, `dist`, and `node_modules` remain ignored and must not be committed. Local evidence and credentials remain outside version control.
