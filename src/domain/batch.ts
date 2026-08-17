@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { blogConfigSchema } from "../config/blogConfig.js";
 import { articleInputSchema } from "./article.js";
+import { articleProvenanceSchema } from "./articleQueue.js";
 
 export const batchManifestSchema = z
   .object({
@@ -12,7 +13,8 @@ export const batchManifestSchema = z
         z
           .object({
             blogKey: z.string().trim().min(1).max(200),
-            article: articleInputSchema
+            article: articleInputSchema,
+            provenance: articleProvenanceSchema.optional()
           })
           .strict()
       )

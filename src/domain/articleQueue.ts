@@ -21,7 +21,7 @@ const routingSchema = z
     message: "Queue routing requires blogKey or at least one topic"
   });
 
-const provenanceSchema = z
+export const articleProvenanceSchema = z
   .object({
     generationRequestId: z.string().trim().min(1).max(100),
     sourceUrls: z
@@ -46,7 +46,7 @@ export const articleQueueManifestSchema = z
           .object({
             article: articleInputSchema,
             routing: routingSchema,
-            provenance: provenanceSchema.optional()
+            provenance: articleProvenanceSchema.optional()
           })
           .strict()
       )
@@ -88,3 +88,4 @@ export const articleQueueManifestSchema = z
   });
 
 export type ArticleQueueManifest = z.infer<typeof articleQueueManifestSchema>;
+export type ArticleProvenance = z.infer<typeof articleProvenanceSchema>;

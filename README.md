@@ -149,6 +149,14 @@ npm run dev -- import-generated-articles --plan examples/article-generation-plan
 
 この段階ではAI APIを呼び出さず、APIキーも読み込みません。出典URLの使用申告は事実性や人間による編集承認を保証するものではありません。出力先が存在する場合は上書きしません。
 
+生成結果から実行可能な既存バッチ形式までを一度に作る場合は、次のコマンドを使用できます。生成結果の完全性、slug・予約日時・出典URL、安全なHTML、投稿先ブログを検証してからバッチを作成し、各項目へ生成依頼IDと出典URLを保持します。
+
+```bash
+npm run dev -- compile-generated-batch --plan examples/article-generation-plan.example.json --responses examples/generated-article-responses.example.json --output data/generated-article-batch.json
+```
+
+このコマンドはデータベース、ブラウザ、Blogger、OpenAI APIを使用しません。作成されたバッチを実行する権限も付与せず、既存ファイルは上書きしません。
+
 ### OpenAI Responses APIアダプター
 
 OpenAI Docsの現行モデル案内に基づき、初期アダプターはコスト重視の `gpt-5.6-luna` だけを許可します。まず無料のローカル見積もりを実行します。
