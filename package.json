@@ -9,6 +9,8 @@
     "start": "node dist/cli/index.js",
     "test": "vitest run",
     "audit:dependencies": "npm audit --audit-level=moderate",
+    "themes:generate": "node scripts/generate-blogger-themes.mjs",
+    "themes:check": "node scripts/generate-blogger-themes.mjs --check",
     "lint": "eslint .",
     "verify:phase2": "npm run lint && npm run build && npm test",
     "verify:phase3": "npm run lint && npm run build && npm test",
