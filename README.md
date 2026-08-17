@@ -157,6 +157,16 @@ npm run dev -- compile-generated-batch --plan examples/article-generation-plan.e
 
 このコマンドはデータベース、ブラウザ、Blogger、OpenAI APIを使用しません。作成されたバッチを実行する権限も付与せず、既存ファイルは上書きしません。
 
+### バッチへの画像割り当て
+
+生成済みバッチの全記事へ対応画像を1枚ずつ割り当てる場合は、[`examples/batch-images.example.json`](examples/batch-images.example.json) のようにブログキー、slug、ローカル画像パスを指定します。
+
+```bash
+npm run dev -- attach-batch-images --manifest data/generated-article-batch.json --images examples/batch-images.example.json --output data/generated-article-batch-with-images.json
+```
+
+全バッチ項目に対応する割り当てがちょうど1件ずつあること、画像が重複利用されていないこと、拡張子と実データ形式が一致すること、ファイルが空でなく10 MiB以下であることを確認してから新しいバッチを作ります。既に`imagePath`がある記事、割り当て漏れ、未知の記事、シンボリックリンク、既存出力は拒否します。このコマンドもブラウザやBloggerを開かず、画像自体の生成やアップロードは行いません。
+
 ### OpenAI Responses APIアダプター
 
 OpenAI Docsの現行モデル案内に基づき、初期アダプターはコスト重視の `gpt-5.6-luna` だけを許可します。まず無料のローカル見積もりを実行します。

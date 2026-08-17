@@ -19,6 +19,7 @@ import { ArticleQueueRoutingService } from "../services/articleQueueRoutingServi
 import { ArticleGenerationPackageService } from "../services/articleGenerationPackageService.js";
 import { GeneratedArticleImportService } from "../services/generatedArticleImportService.js";
 import { GeneratedArticleBatchCompilerService } from "../services/generatedArticleBatchCompilerService.js";
+import { BatchImageAttachmentService } from "../services/batchImageAttachmentService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
@@ -170,6 +171,24 @@ export async function main(): Promise<void> {
         assignments: result.assignments
       },
       "Generated articles validated and compiled to batch manifest"
+    );
+    return;
+  }
+  if (args.command === "attach-batch-images") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const imagesPath = resolve(requiredString(args.options, "images"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if (outputPath === manifestPath || outputPath === imagesPath) {
+      throw new Error("Image-attached batch output must not overwrite an input file");
+    }
+    const result = await new BatchImageAttachmentService().execute(
+      await readJsonFile(manifestPath),
+      await readJsonFile(imagesPath)
+    );
+    await writeNewJsonFile(outputPath, result.manifest);
+    logger.info(
+      { outputPath, images: result.images },
+      "Validated images attached to local batch manifest"
     );
     return;
   }
@@ -518,6 +537,7 @@ Commands:
   prepare-generation-package --manifest <path> --output <path>
   import-generated-articles --plan <path> --responses <path> --output <path>
   compile-generated-batch --plan <path> --responses <path> --output <path>
+  attach-batch-images --manifest <path> --images <path> --output <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>
