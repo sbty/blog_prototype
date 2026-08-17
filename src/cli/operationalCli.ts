@@ -18,6 +18,7 @@ import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { ArticleQueueRoutingService } from "../services/articleQueueRoutingService.js";
 import { ArticleGenerationPackageService } from "../services/articleGenerationPackageService.js";
 import { GeneratedArticleImportService } from "../services/generatedArticleImportService.js";
+import { GeneratedArticleBatchCompilerService } from "../services/generatedArticleBatchCompilerService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
@@ -147,6 +148,28 @@ export async function main(): Promise<void> {
     logger.info(
       { outputPath, requestCount: queue.items.length },
       "Generated articles validated and imported to local queue"
+    );
+    return;
+  }
+  if (args.command === "compile-generated-batch") {
+    const planPath = resolve(requiredString(args.options, "plan"));
+    const responsesPath = resolve(requiredString(args.options, "responses"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if (outputPath === planPath || outputPath === responsesPath) {
+      throw new Error("Generated batch output must not overwrite an input file");
+    }
+    const result = new GeneratedArticleBatchCompilerService().execute(
+      await readJsonFile(planPath),
+      await readJsonFile(responsesPath)
+    );
+    await writeNewJsonFile(outputPath, result.manifest);
+    logger.info(
+      {
+        outputPath,
+        requestIds: result.requestIds,
+        assignments: result.assignments
+      },
+      "Generated articles validated and compiled to batch manifest"
     );
     return;
   }
@@ -494,6 +517,7 @@ Commands:
   save-draft --blog <path> --article <path>
   prepare-generation-package --manifest <path> --output <path>
   import-generated-articles --plan <path> --responses <path> --output <path>
+  compile-generated-batch --plan <path> --responses <path> --output <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>

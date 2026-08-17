@@ -53,7 +53,8 @@ export class ArticleQueueRoutingService {
       blogs: queue.blogs,
       items: queue.items.map((item, index) => ({
         blogKey: assignments[index].blogKey,
-        article: item.article
+        article: item.article,
+        ...(item.provenance ? { provenance: item.provenance } : {})
       }))
     });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ArticleGenerationPackageService } from "../services/articleGenerationPackageService.js";
 import { GeneratedArticleImportService } from "../services/generatedArticleImportService.js";
+import { GeneratedArticleBatchCompilerService } from "../services/generatedArticleBatchCompilerService.js";
 
 function plan(overrides: Record<string, unknown> = {}) {
   return {
@@ -182,6 +183,40 @@ describe("GeneratedArticleImportService", () => {
     activeHtml.items[0].article.html = '<script src="https://example.com/x.js"></script>';
     expect(() => new GeneratedArticleImportService().execute(plan(), activeHtml)).toThrow(
       "Article HTML contains active content"
+    );
+  });
+});
+
+describe("GeneratedArticleBatchCompilerService", () => {
+  it("validates, routes, and preserves source provenance in an executable batch manifest", () => {
+    const result = new GeneratedArticleBatchCompilerService().execute(plan(), responses());
+
+    expect(result.requestIds).toEqual(["request-one"]);
+    expect(result.assignments).toEqual([
+      {
+        slug: "usb-c-compatibility",
+        blogKey: "compatibility",
+        mode: "explicit",
+        score: null,
+        matchedTopics: ["USB-C and USB PD"]
+      }
+    ]);
+    expect(result.manifest.items[0]).toMatchObject({
+      blogKey: "compatibility",
+      article: { slug: "usb-c-compatibility" },
+      provenance: {
+        generationRequestId: "request-one",
+        sourceUrls: ["https://example.org/source-b", "https://example.com/source-a"]
+      }
+    });
+  });
+
+  it("fails before producing a batch when import integrity validation fails", () => {
+    const changed = responses();
+    changed.items[0].article.slug = "changed-slug";
+
+    expect(() => new GeneratedArticleBatchCompilerService().execute(plan(), changed)).toThrow(
+      "changed the requested slug"
     );
   });
 });
