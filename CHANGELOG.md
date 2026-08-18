@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - Added a guarded OpenAI Responses API adapter with Structured Outputs and a free local maximum-cost estimate.
 - Added a one-command generated-article batch compiler that preserves generation request and source provenance through the existing multi-blog batch contract.
 - Added a local batch-image attachment command that maps one validated unique image to every blog/article assignment before batch execution.
+- Added an integrated content-batch compiler that validates generated responses, routes multiple articles, and attaches corresponding images in one local command.
 
 ### Security
 
@@ -21,6 +22,7 @@ All notable changes to this project are documented in this file.
 - Keep paid OpenAI generation default-off, model-allowlisted, exact-cost-confirmed, storage-disabled, tool-free, bounded, and protected by durable one-attempt evidence.
 - Validate generated responses and all blog assignments before creating a new batch file; never overwrite inputs or existing output files.
 - Reject incomplete, unknown, duplicate, reused, invalid, or pre-existing batch image assignments before creating an image-attached batch.
+- Complete all generated-content and image checks before writing an integrated content batch, without invoking a provider, browser, database, or Blogger.
 
 ## [0.2.1] - 2026-08-13
 

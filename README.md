@@ -167,6 +167,14 @@ npm run dev -- attach-batch-images --manifest data/generated-article-batch.json 
 
 全バッチ項目に対応する割り当てがちょうど1件ずつあること、画像が重複利用されていないこと、拡張子と実データ形式が一致すること、ファイルが空でなく10 MiB以下であることを確認してから新しいバッチを作ります。既に`imagePath`がある記事、割り当て漏れ、未知の記事、シンボリックリンク、既存出力は拒否します。このコマンドもブラウザやBloggerを開かず、画像自体の生成やアップロードは行いません。
 
+生成結果の検証、ブログ振り分け、画像割り当てを中間ファイルなしで一括実行する場合は、次の統合コマンドを使用します。
+
+```bash
+npm run dev -- compile-content-batch --plan examples/article-generation-plan.example.json --responses examples/generated-article-responses.example.json --images examples/batch-images.example.json --output data/content-batch.json
+```
+
+3つの入力全体が合格した場合だけ、出典情報と検証済み画像パスを含む既存バッチ形式を新規作成します。記事生成、画像生成、Blogger保存は別工程であり、このコマンドから外部通信は発生しません。
+
 ### OpenAI Responses APIアダプター
 
 OpenAI Docsの現行モデル案内に基づき、初期アダプターはコスト重視の `gpt-5.6-luna` だけを許可します。まず無料のローカル見積もりを実行します。
