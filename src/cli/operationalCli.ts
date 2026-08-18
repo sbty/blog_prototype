@@ -20,6 +20,7 @@ import { ArticleGenerationPackageService } from "../services/articleGenerationPa
 import { GeneratedArticleImportService } from "../services/generatedArticleImportService.js";
 import { GeneratedArticleBatchCompilerService } from "../services/generatedArticleBatchCompilerService.js";
 import { BatchImageAttachmentService } from "../services/batchImageAttachmentService.js";
+import { ContentBatchCompilerService } from "../services/contentBatchCompilerService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
@@ -189,6 +190,31 @@ export async function main(): Promise<void> {
     logger.info(
       { outputPath, images: result.images },
       "Validated images attached to local batch manifest"
+    );
+    return;
+  }
+  if (args.command === "compile-content-batch") {
+    const planPath = resolve(requiredString(args.options, "plan"));
+    const responsesPath = resolve(requiredString(args.options, "responses"));
+    const imagesPath = resolve(requiredString(args.options, "images"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if ([planPath, responsesPath, imagesPath].includes(outputPath)) {
+      throw new Error("Content batch output must not overwrite an input file");
+    }
+    const result = await new ContentBatchCompilerService().execute(
+      await readJsonFile(planPath),
+      await readJsonFile(responsesPath),
+      await readJsonFile(imagesPath)
+    );
+    await writeNewJsonFile(outputPath, result.manifest);
+    logger.info(
+      {
+        outputPath,
+        requestIds: result.requestIds,
+        assignments: result.assignments,
+        images: result.images
+      },
+      "Generated articles and validated images compiled to local batch manifest"
     );
     return;
   }
@@ -538,6 +564,7 @@ Commands:
   import-generated-articles --plan <path> --responses <path> --output <path>
   compile-generated-batch --plan <path> --responses <path> --output <path>
   attach-batch-images --manifest <path> --images <path> --output <path>
+  compile-content-batch --plan <path> --responses <path> --images <path> --output <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>
