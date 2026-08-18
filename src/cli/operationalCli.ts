@@ -20,6 +20,7 @@ import { ArticleGenerationPackageService } from "../services/articleGenerationPa
 import { GeneratedArticleImportService } from "../services/generatedArticleImportService.js";
 import { GeneratedArticleBatchCompilerService } from "../services/generatedArticleBatchCompilerService.js";
 import { BatchImageAttachmentService } from "../services/batchImageAttachmentService.js";
+import { BatchSourceAttachmentService } from "../services/batchSourceAttachmentService.js";
 import { ContentBatchCompilerService } from "../services/contentBatchCompilerService.js";
 import { ContentBatchAuditService } from "../services/contentBatchAuditService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
@@ -191,6 +192,24 @@ export async function main(): Promise<void> {
     logger.info(
       { outputPath, images: result.images },
       "Validated images attached to local batch manifest"
+    );
+    return;
+  }
+  if (args.command === "attach-batch-sources") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const sourcesPath = resolve(requiredString(args.options, "sources"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if (outputPath === manifestPath || outputPath === sourcesPath) {
+      throw new Error("Source-attached batch output must not overwrite an input file");
+    }
+    const result = new BatchSourceAttachmentService().execute(
+      await readJsonFile(manifestPath),
+      await readJsonFile(sourcesPath)
+    );
+    await writeNewJsonFile(outputPath, result.manifest);
+    logger.info(
+      { outputPath, sources: result.sources },
+      "Official sources attached to local batch manifest"
     );
     return;
   }
@@ -582,6 +601,7 @@ Commands:
   import-generated-articles --plan <path> --responses <path> --output <path>
   compile-generated-batch --plan <path> --responses <path> --output <path>
   attach-batch-images --manifest <path> --images <path> --output <path>
+  attach-batch-sources --manifest <path> --sources <path> --output <path>
   compile-content-batch --plan <path> --responses <path> --images <path> --output <path>
   audit-content-batch --manifest <path> --output <path>
   estimate-openai-generation --package <path>

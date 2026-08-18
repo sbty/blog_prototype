@@ -30,6 +30,10 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     options: ["manifest", "images", "output"],
     requiresDatabase: false
   },
+  "attach-batch-sources": {
+    options: ["manifest", "sources", "output"],
+    requiresDatabase: false
+  },
   "compile-content-batch": {
     options: ["plan", "responses", "images", "output"],
     requiresDatabase: false

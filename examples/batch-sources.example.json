@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "sectionHeading": "公式情報",
+  "items": [
+    {
+      "blogKey": "compatibility-database-jp-01",
+      "slug": "usb-pd-240w-cable-compatibility",
+      "generationRequestId": "usb-pd-240w-cable-research",
+      "sources": [
+        {
+          "title": "USB Charger (USB Power Delivery) | USB-IF",
+          "url": "https://www.usb.org/usb-charger-pd"
+        }
+      ]
+    }
+  ]
+}
