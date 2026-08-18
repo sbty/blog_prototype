@@ -13,10 +13,10 @@
 
 ## Required before publishing v0.3.0
 
-- [ ] Pull request checks, Node.js 24 compatibility, and CodeQL pass on the final release commit.
+- [x] Pull request checks, Node.js 24 compatibility, and CodeQL pass on the final release commit.
 - [x] Production and development dependency audits report zero known vulnerabilities.
-- [ ] `main` is clean and matches `origin/main` after the release-preparation pull request is merged.
-- [ ] The maintainer explicitly approves creation of the `v0.3.0` tag and GitHub release.
+- [x] `main` is clean and matches `origin/main` after the release-preparation pull request is merged.
+- [x] The maintainer explicitly approves creation of the `v0.3.0` tag and GitHub release.
 
 ## Release scope
 
