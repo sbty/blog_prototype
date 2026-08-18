@@ -1,5 +1,6 @@
 import { validateImageFile, type ValidatedImageFile } from "../browser/imageFile.js";
 import { batchManifestSchema } from "../domain/batch.js";
+import { z } from "zod";
 
 export type ContentAuditSeverity = "ERROR" | "WARNING";
 
@@ -39,6 +40,82 @@ export interface ContentBatchAuditResult {
   };
   items: ContentBatchAuditItem[];
 }
+
+export const contentBatchAuditResultSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    generatedAt: z.string().datetime({ offset: true }),
+    status: z.enum(["PASS", "FAIL"]),
+    counts: z
+      .object({
+        total: z.number().int().nonnegative(),
+        passed: z.number().int().nonnegative(),
+        failed: z.number().int().nonnegative(),
+        errors: z.number().int().nonnegative(),
+        warnings: z.number().int().nonnegative()
+      })
+      .strict(),
+    items: z.array(
+      z
+        .object({
+          index: z.number().int().nonnegative(),
+          blogKey: z.string().trim().min(1).max(200),
+          slug: z.string().trim().min(1).max(100),
+          status: z.enum(["PASS", "FAIL"]),
+          metrics: z
+            .object({
+              textLength: z.number().int().nonnegative(),
+              targetLengthMin: z.number().int().nonnegative(),
+              targetLengthMax: z.number().int().nonnegative(),
+              sourceCount: z.number().int().nonnegative(),
+              citedSourceCount: z.number().int().nonnegative(),
+              labelCount: z.number().int().nonnegative(),
+              imageBytes: z.number().int().nonnegative().nullable()
+            })
+            .strict(),
+          issues: z.array(
+            z
+              .object({
+                code: z.string().trim().min(1).max(200),
+                severity: z.enum(["ERROR", "WARNING"]),
+                message: z.string().trim().min(1).max(2000)
+              })
+              .strict()
+          )
+        })
+        .strict()
+    )
+  })
+  .strict()
+  .superRefine((result, context) => {
+    const failed = result.items.filter((item) => item.status === "FAIL").length;
+    const errors = result.items
+      .flatMap((item) => item.issues)
+      .filter((issue) => issue.severity === "ERROR").length;
+    const warnings = result.items
+      .flatMap((item) => item.issues)
+      .filter((issue) => issue.severity === "WARNING").length;
+    const consistent =
+      result.counts.total === result.items.length &&
+      result.counts.failed === failed &&
+      result.counts.passed === result.items.length - failed &&
+      result.counts.errors === errors &&
+      result.counts.warnings === warnings &&
+      result.status === (failed === 0 ? "PASS" : "FAIL");
+    if (!consistent) {
+      context.addIssue({ code: "custom", message: "Content audit counts are inconsistent" });
+    }
+    result.items.forEach((item, index) => {
+      const hasError = item.issues.some((issue) => issue.severity === "ERROR");
+      if (item.index !== index || item.status !== (hasError ? "FAIL" : "PASS")) {
+        context.addIssue({
+          code: "custom",
+          path: ["items", index],
+          message: "Content audit item index or status is inconsistent"
+        });
+      }
+    });
+  });
 
 type ImageValidator = (imagePath: string) => Promise<ValidatedImageFile>;
 

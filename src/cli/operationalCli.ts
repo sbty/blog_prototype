@@ -24,6 +24,7 @@ import { BatchImageAttachmentService } from "../services/batchImageAttachmentSer
 import { BatchSourceAttachmentService } from "../services/batchSourceAttachmentService.js";
 import { ContentBatchCompilerService } from "../services/contentBatchCompilerService.js";
 import { ContentBatchAuditService } from "../services/contentBatchAuditService.js";
+import { ContentAuditRetryService } from "../services/contentAuditRetryService.js";
 import { DraftSourceUpdateService } from "../services/draftSourceUpdateService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
@@ -255,6 +256,24 @@ export async function main(): Promise<void> {
     if (result.status === "FAIL") {
       throw new Error(`Content batch audit failed; inspect ${outputPath}`);
     }
+    return;
+  }
+  if (args.command === "prepare-content-audit-retry") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const auditPath = resolve(requiredString(args.options, "audit"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if (outputPath === manifestPath || outputPath === auditPath) {
+      throw new Error("Content audit retry output must not overwrite an input file");
+    }
+    const result = new ContentAuditRetryService().execute(
+      await readJsonFile(manifestPath),
+      await readJsonFile(auditPath)
+    );
+    await writeNewJsonFile(outputPath, result.manifest);
+    logger.info(
+      { outputPath, failedAssignments: result.failedAssignments },
+      "Content audit retry batch prepared"
+    );
     return;
   }
   if (args.command === "update-draft-sources") {
@@ -622,6 +641,7 @@ Commands:
   attach-batch-sources --manifest <path> --sources <path> --output <path>
   compile-content-batch --plan <path> --responses <path> --images <path> --output <path>
   audit-content-batch --manifest <path> --output <path>
+  prepare-content-audit-retry --manifest <path> --audit <path> --output <path>
   update-draft-sources --manifest <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
