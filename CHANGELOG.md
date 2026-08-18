@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Added a read-only Phase 7 content-batch audit for article length, provenance citations, images, Blogger search-description limits, headings, labels, titles, and excluded topics.
+
+### Security
+
+- Write a durable audit report before failing invalid content batches, without opening a browser, contacting Blogger, using the database, or calling an AI provider.
+
 ## [0.3.0] - 2026-08-18
 
 ### Added

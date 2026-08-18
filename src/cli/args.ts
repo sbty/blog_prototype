@@ -34,6 +34,10 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     options: ["plan", "responses", "images", "output"],
     requiresDatabase: false
   },
+  "audit-content-batch": {
+    options: ["manifest", "output"],
+    requiresDatabase: false
+  },
   "estimate-openai-generation": { options: ["package"], requiresDatabase: false },
   "generate-openai-articles": {
     options: ["package", "output", "confirm-max-cost-cents"],
