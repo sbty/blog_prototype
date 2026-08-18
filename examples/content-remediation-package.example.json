@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "requests": [
+    {
+      "remediationId": "content-remediation-0001",
+      "sourceIndex": 0,
+      "blogKey": "compatibility-lab-example",
+      "editorialProfile": {
+        "displayName": "Compatibility Lab Example",
+        "language": "en",
+        "targetCountry": "US",
+        "primaryTheme": "PC and device compatibility",
+        "targetAudience": ["People checking compatibility before purchasing"],
+        "topicClusters": ["USB-C and USB PD"],
+        "excludedTopics": ["unsafe electrical modifications"],
+        "targetLength": { "min": 1800, "max": 3500 }
+      },
+      "currentArticle": {
+        "title": "Can a USB-C Laptop Charger Power a Handheld PC?",
+        "html": "<h2>Compatibility</h2><p>This draft needs more detail.</p>",
+        "labels": ["USB-C", "compatibility"],
+        "searchDescription": "Check USB-C charger compatibility.",
+        "slug": "usb-c-charger-handheld-pc-compatibility"
+      },
+      "provenance": {
+        "sourceUrls": ["https://example.com/official-usb-pd-source"],
+        "requiresSourceResearch": false
+      },
+      "audit": {
+        "metrics": {
+          "textLength": 42,
+          "targetLengthMin": 1800,
+          "targetLengthMax": 3500,
+          "sourceCount": 1,
+          "citedSourceCount": 0,
+          "labelCount": 2,
+          "imageBytes": 120000
+        },
+        "issues": [
+          {
+            "code": "TARGET_LENGTH",
+            "severity": "ERROR",
+            "message": "Article text length 42 is outside 1800-3500"
+          },
+          {
+            "code": "SOURCE_CITATION_MISSING",
+            "severity": "ERROR",
+            "message": "Article cites 0 of 1 provenance sources as HTTPS links"
+          }
+        ]
+      },
+      "correctionRules": [
+        "resolve every listed audit issue",
+        "preserve the slug exactly",
+        "preserve the article topic and search intent",
+        "cite every provided source URL as an HTTPS link",
+        "do not invent source URLs or unsupported claims",
+        "return a complete replacement article"
+      ],
+      "outputContract": {
+        "requiredFields": ["title", "html", "labels", "searchDescription", "slug"],
+        "responseFields": ["remediationId", "article", "sourceUrlsUsed"],
+        "preserveImagePathOutOfBand": true,
+        "preserveScheduledAtOutOfBand": true
+      }
+    }
+  ]
+}
