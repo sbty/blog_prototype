@@ -37,6 +37,18 @@ function officialSectionCount(html: string): number {
   return (html.match(/class=["']official-sources["']/g) ?? []).length;
 }
 
+export function bloggerHostedImageCount(html: string): number {
+  let count = 0;
+  for (const match of html.matchAll(/<img\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/gi)) {
+    try {
+      if (new URL(match[2]).hostname === "blogger.googleusercontent.com") count += 1;
+    } catch {
+      // Invalid image URLs do not count as preserved Blogger-hosted images.
+    }
+  }
+  return count;
+}
+
 export function prepareOfficialSourcesHtml(
   currentHtml: string,
   sourceSectionHtml: string,
@@ -155,10 +167,7 @@ export class BloggerDraftSourceUpdater {
         ) {
           throw new Error(`Blogger source reload verification failed: ${target.slug}`);
         }
-        if (
-          beforeHtml.includes("blogger.googleusercontent.com") !==
-          verifiedHtml.includes("blogger.googleusercontent.com")
-        ) {
+        if (bloggerHostedImageCount(beforeHtml) !== bloggerHostedImageCount(verifiedHtml)) {
           throw new Error(`Blogger image preservation check failed: ${target.slug}`);
         }
         const screenshotPath = path.join(artifactDir, "screenshots", `${target.slug}.png`);

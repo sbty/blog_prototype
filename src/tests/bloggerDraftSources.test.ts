@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { prepareOfficialSourcesHtml } from "../browser/bloggerDraftSources.js";
+import {
+  bloggerHostedImageCount,
+  prepareOfficialSourcesHtml
+} from "../browser/bloggerDraftSources.js";
 
 const url = "https://example.com/official";
 const section = `<section class="official-sources"><h2>Official</h2><ul><li><a href="${url}">Source</a></li></ul></section>`;
@@ -46,5 +49,15 @@ describe("prepareOfficialSourcesHtml", () => {
         [url]
       )
     ).toThrow("Existing official source section does not match provenance");
+  });
+});
+
+describe("bloggerHostedImageCount", () => {
+  it("counts only images hosted on the exact Blogger image hostname", () => {
+    expect(
+      bloggerHostedImageCount(
+        '<img src="https://blogger.googleusercontent.com/img/one.png"><img src="https://blogger.googleusercontent.com.evil.example/two.png"><img src="https://evil.example/blogger.googleusercontent.com/three.png">'
+      )
+    ).toBe(1);
   });
 });
