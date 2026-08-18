@@ -6,6 +6,10 @@ import { batchManifestSchema, type BatchManifest } from "../domain/batch.js";
 import type { ArticleInput } from "../domain/article.js";
 import { assertNotStopped, StopRequestedError } from "../system/stop.js";
 import { createArtifactDir, makeJobId, writeJsonArtifactAtomic } from "./artifacts.js";
+import {
+  ContentBatchAuditService,
+  type ContentBatchAuditResult
+} from "./contentBatchAuditService.js";
 
 interface ItemExecutionResult {
   jobId: string;
@@ -41,8 +45,15 @@ export interface BatchExecutionResult {
     failed: number;
     skipped: number;
   };
+  contentAudit?: {
+    reportPath: string;
+    status: ContentBatchAuditResult["status"];
+    counts: ContentBatchAuditResult["counts"];
+  };
   items: BatchItemResult[];
 }
+
+type ContentAuditor = Pick<ContentBatchAuditService, "execute">;
 
 export class BatchExecutionService {
   constructor(
@@ -52,7 +63,8 @@ export class BatchExecutionService {
       saveDraft: ItemExecutor;
       planSchedule: ItemExecutor;
     },
-    private readonly logger: Logger
+    private readonly logger: Logger,
+    private readonly contentAuditor: ContentAuditor = new ContentBatchAuditService()
   ) {}
 
   async execute(input: unknown): Promise<BatchExecutionResult> {
@@ -64,6 +76,22 @@ export class BatchExecutionService {
     const artifactDir = await createArtifactDir(this.config.DATA_DIR, batchId);
     const reportPath = path.join(artifactDir, "batch-result.json");
     const startedAt = new Date().toISOString();
+    let contentAudit: BatchExecutionResult["contentAudit"];
+    if (manifest.operation === "save-drafts") {
+      const auditResult = await this.contentAuditor.execute(manifest);
+      const auditPath = path.join(artifactDir, "content-audit.json");
+      await writeJsonArtifactAtomic(auditPath, auditResult);
+      contentAudit = {
+        reportPath: auditPath,
+        status: auditResult.status,
+        counts: auditResult.counts
+      };
+      if (auditResult.status === "FAIL") {
+        throw new Error(
+          `Batch content audit failed before Blogger execution; inspect ${auditPath}`
+        );
+      }
+    }
     const blogs = new Map(manifest.blogs.map((blog) => [blog.blogKey, blog]));
     const results: BatchItemResult[] = [];
 
@@ -135,6 +163,7 @@ export class BatchExecutionService {
         failed: results.filter((item) => item.status === "FAILED").length,
         skipped: results.filter((item) => item.status === "SKIPPED").length
       },
+      ...(contentAudit ? { contentAudit } : {}),
       items: results
     };
     await writeJsonArtifactAtomic(reportPath, result);

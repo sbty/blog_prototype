@@ -5,6 +5,7 @@ import pino from "pino";
 import { describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../config/env.js";
 import { BatchExecutionService } from "../services/batchExecutionService.js";
+import type { ContentBatchAuditResult } from "../services/contentBatchAuditService.js";
 import { StopRequestedError } from "../system/stop.js";
 
 function blog(blogKey: string) {
@@ -53,12 +54,20 @@ function fixture(input: { draftEnabled?: boolean; dryRunEnabled?: boolean } = {}
     jobId: `schedule-${item.slug}`,
     artifactDir: path.join(dataDir, item.slug)
   }));
+  const contentAudit = vi.fn<() => Promise<ContentBatchAuditResult>>(async () => ({
+    schemaVersion: 1 as const,
+    generatedAt: new Date().toISOString(),
+    status: "PASS" as const,
+    counts: { total: 1, passed: 1, failed: 0, errors: 0, warnings: 0 },
+    items: []
+  }));
   const service = new BatchExecutionService(
     config,
     { dryRun, saveDraft, planSchedule },
-    pino({ enabled: false })
+    pino({ enabled: false }),
+    { execute: contentAudit }
   );
-  return { dataDir, service, dryRun, saveDraft, planSchedule };
+  return { dataDir, service, dryRun, saveDraft, planSchedule, contentAudit };
 }
 
 describe("BatchExecutionService", () => {
@@ -100,9 +109,72 @@ describe("BatchExecutionService", () => {
       ]
     );
     expect(result.counts).toEqual({ total: 3, succeeded: 3, failed: 0, skipped: 0 });
+    expect(result.contentAudit).toMatchObject({
+      status: "PASS",
+      counts: { failed: 0, errors: 0 }
+    });
+    expect(JSON.parse(readFileSync(result.contentAudit!.reportPath, "utf8"))).toMatchObject({
+      status: "PASS"
+    });
     expect(JSON.parse(readFileSync(result.reportPath, "utf8"))).toMatchObject({
       batchId: result.batchId,
       counts: result.counts
+    });
+  });
+
+  it("blocks the entire save batch and persists the audit before any Blogger executor", async () => {
+    const { service, saveDraft, contentAudit } = fixture();
+    contentAudit.mockResolvedValueOnce({
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      status: "FAIL",
+      counts: { total: 2, passed: 1, failed: 1, errors: 1, warnings: 0 },
+      items: [
+        {
+          index: 1,
+          blogKey: "blog-2",
+          slug: "two",
+          status: "FAIL",
+          metrics: {
+            textLength: 3,
+            targetLengthMin: 100,
+            targetLengthMax: 500,
+            sourceCount: 0,
+            citedSourceCount: 0,
+            labelCount: 1,
+            imageBytes: null
+          },
+          issues: [
+            {
+              code: "PROVENANCE_MISSING",
+              severity: "ERROR",
+              message: "Article is missing provenance"
+            }
+          ]
+        }
+      ]
+    });
+
+    let errorMessage = "";
+    try {
+      await service.execute({
+        operation: "save-drafts",
+        blogs: [blog("blog-1"), blog("blog-2")],
+        items: [
+          { blogKey: "blog-1", article: article("one") },
+          { blogKey: "blog-2", article: article("two") }
+        ]
+      });
+    } catch (error) {
+      errorMessage = error instanceof Error ? error.message : String(error);
+    }
+    const auditPath = errorMessage.match(/inspect (.*content-audit\.json)/)?.[1] ?? "";
+    expect(errorMessage).toContain("Batch content audit failed before Blogger execution");
+    expect(saveDraft).not.toHaveBeenCalled();
+    expect(auditPath).not.toBe("");
+    expect(JSON.parse(readFileSync(auditPath, "utf8"))).toMatchObject({
+      status: "FAIL",
+      counts: { failed: 1, errors: 1 }
     });
   });
 
