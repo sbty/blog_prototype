@@ -46,6 +46,10 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     options: ["manifest", "audit", "output"],
     requiresDatabase: false
   },
+  "prepare-content-remediation-package": {
+    options: ["manifest", "audit", "output"],
+    requiresDatabase: false
+  },
   "update-draft-sources": {
     options: ["manifest"],
     requiresDatabase: false
