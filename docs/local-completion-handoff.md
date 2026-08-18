@@ -7,6 +7,7 @@
 - Phase 4 sealed local execution-candidate package and independent audit attestation.
 - Phase 5 dedicated-test-blog execution boundary, compiled-artifact verification, automated image-plus-schedule acceptance, public post/image audit, and operations runbook.
 - Multi-blog and multi-article campaign preparation, allowlisted schedule batches, all-items preflight, exact retry manifests, read-only campaign/batch inspection and listing, and one explicitly authorized two-blog scheduled-publication acceptance.
+- Phase 6 local article routing, generation export/import, guarded provider adapter, provenance-preserving batch compilation, validated image attachment, and integrated content-batch compilation.
 
 Local evidence does not grant permission for another save, schedule, or publish operation.
 
@@ -18,7 +19,7 @@ Run the current complete local safety gate:
 npm run verify:local-complete
 ```
 
-This delegates to the Phase 5 boundary gate and checks scoped formatting, lint, TypeScript compilation, the complete automated test suite, and the built CLI scheduled-execution safety boundary.
+This delegates to the Phase 6 gate and checks Phase 5 and Phase 6 scoped formatting, blog examples, lint, TypeScript compilation, the complete automated test suite, and the built CLI scheduled-execution safety boundary.
 
 ## Required safety state
 
@@ -43,4 +44,6 @@ Any expansion requires explicit authorization, separate acceptance criteria, a s
 - [Two-blog acceptance ADR](adr/0016-two-blog-scheduled-acceptance.md)
 - [Phase 5 release checklist](phase5-release-checklist.md)
 - [Phase 5 operations runbook](phase5-operations-runbook.md)
+- [Phase 6 completion checklist](phase6-completion-checklist.md)
+- [Phase 6 release checklist](phase6-release-checklist.md)
 - [Disabled recurring audit example](read-only-scheduled-audit-example.md)

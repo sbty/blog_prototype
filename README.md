@@ -4,6 +4,8 @@
 
 現在の限定安定版: [v0.2.1](https://github.com/sbty/blog_prototype/releases/tag/v0.2.1)
 
+次期リリース候補: v0.3.0（Phase 6ローカル生成・振り分け・画像付きバッチ境界）
+
 現在のリポジトリ運用範囲は、ローカルで明示的に許可した専用Bloggerテストブログだけを対象とします。2ブログで一括予約・公開を受入確認済みですが、追加のBlogger実操作、無人公開、本番運用を許可するものではありません。
 
 - [開発・PR手順](CONTRIBUTING.md)
@@ -55,6 +57,12 @@ npm run verify:phase5-boundary
 
 ```bash
 npm run verify:local-complete
+```
+
+Phase 6だけを明示して同じ完全ゲートを実行する場合は次を使用できます。
+
+```bash
+npm run verify:phase6
 ```
 
 Windows PowerShell では `cp` の代わりに次を使えます。
@@ -357,6 +365,12 @@ Phase 5 の `execute-schedule` と一括実行は、Git管理外の `.env` で�
 予約実行直前にはBlogger公開フィードのUTCオフセットを読み取り、`APP_TIMEZONE` の期待オフセットと比較します。公開済み記事がある場合は最新記事の公開日時、空ブログではフィード更新日時を使用します。不一致、フィード取得失敗、不正JSON、検証可能な日時の欠落時は、試行マーカー作成およびブラウザ変更より前に停止します。
 
 詳細は [`docs/phase4-completion-checklist.md`](docs/phase4-completion-checklist.md) と [`docs/phase5-boundary-checklist.md`](docs/phase5-boundary-checklist.md) を参照してください。Bloggerへの保存、予約確定、公開、または実行境界の解除には、別途明示的な承認と受入条件が必要です。
+
+## Phase 6 の状態
+
+Phase 6では、完成記事の複数ブログ振り分け、プロバイダー中立の生成パッケージ、生成結果の厳格な取り込み、既定無効・料金確認付きOpenAIアダプター、出典情報を保持するバッチ生成、対応画像の事前割り当て、および生成結果と画像から完全なバッチを作る統合コマンドを実装済みです。
+
+ローカル完了条件は [`docs/phase6-completion-checklist.md`](docs/phase6-completion-checklist.md)、v0.3.0候補の公開前確認は [`docs/phase6-release-checklist.md`](docs/phase6-release-checklist.md) に記録しています。自動的な情報源探索、Web上の事実確認、画像生成、無人のAI生成・投稿、および追加のBlogger実操作は含みません。
 
 ローカル完了範囲の引き渡し要約は [`docs/local-completion-handoff.md`](docs/local-completion-handoff.md) にまとめています。
 

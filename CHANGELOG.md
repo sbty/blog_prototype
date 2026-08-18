@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [0.3.0] - 2026-08-18
+
 ### Added
 
 - Added a local Phase 6 article-queue compiler that routes completed article candidates to multiple blog configurations and emits an existing batch manifest.
@@ -99,6 +101,7 @@ All notable changes to this project are documented in this file.
 - This release does not authorize another Blogger mutation, another blog, unattended publishing, production rollout, or unbounded retries.
 - Expanding the execution scope requires explicit authorization, separate acceptance criteria, a safety review, and an ADR.
 
+[0.3.0]: https://github.com/sbty/blog_prototype/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/sbty/blog_prototype/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sbty/blog_prototype/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/sbty/blog_prototype/compare/v0.1.0...v0.1.1
