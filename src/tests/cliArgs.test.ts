@@ -126,6 +126,10 @@ describe("parseArgs", () => {
       command: "audit-content-batch",
       options: { manifest: "content-batch.json", output: "content-audit.json" }
     });
+    expect(parseArgs(["update-draft-sources", "--manifest", "content-batch.json"])).toEqual({
+      command: "update-draft-sources",
+      options: { manifest: "content-batch.json" }
+    });
   });
   it("parses OpenAI generation estimate and execution commands", () => {
     expect(parseArgs(["estimate-openai-generation", "--package", "package.json"])).toEqual({
@@ -320,6 +324,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("compile-content-batch")).toBe(false);
     expect(commandRequiresDatabase("audit-content-batch")).toBe(false);
     expect(commandRequiresDatabase("attach-batch-sources")).toBe(false);
+    expect(commandRequiresDatabase("update-draft-sources")).toBe(false);
     expect(commandRequiresDatabase("estimate-openai-generation")).toBe(false);
     expect(commandRequiresDatabase("generate-openai-articles")).toBe(false);
     expect(commandRequiresDatabase("inspect-schedule-batch")).toBe(false);

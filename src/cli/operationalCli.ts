@@ -7,6 +7,7 @@ import { loadBloggerSelectors } from "../browser/bloggerSelectors.js";
 import { blogConfigSchema } from "../config/blogConfig.js";
 import { loadConfig } from "../config/env.js";
 import { articleInputSchema } from "../domain/article.js";
+import { batchManifestSchema } from "../domain/batch.js";
 import { createLogger } from "../logging/logger.js";
 import { ArticleRepository } from "../repositories/articleRepository.js";
 import { BlogRepository } from "../repositories/blogRepository.js";
@@ -23,6 +24,7 @@ import { BatchImageAttachmentService } from "../services/batchImageAttachmentSer
 import { BatchSourceAttachmentService } from "../services/batchSourceAttachmentService.js";
 import { ContentBatchCompilerService } from "../services/contentBatchCompilerService.js";
 import { ContentBatchAuditService } from "../services/contentBatchAuditService.js";
+import { DraftSourceUpdateService } from "../services/draftSourceUpdateService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
@@ -253,6 +255,22 @@ export async function main(): Promise<void> {
     if (result.status === "FAIL") {
       throw new Error(`Content batch audit failed; inspect ${outputPath}`);
     }
+    return;
+  }
+  if (args.command === "update-draft-sources") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const manifestInput = await readJsonFile<unknown>(manifestPath);
+    const manifest = batchManifestSchema.parse(manifestInput);
+    const selectorPaths = new Set(manifest.blogs.map((blog) => blog.blogger.selectorsPath));
+    if (selectorPaths.size !== 1) {
+      throw new Error("Draft source update requires one shared Blogger selectors file");
+    }
+    const selectors = await loadBloggerSelectors([...selectorPaths][0]);
+    const result = await new DraftSourceUpdateService(config, selectors).execute(manifest);
+    logger.info(
+      { reportPath: result.reportPath, counts: result.counts },
+      "Blogger draft official sources updated"
+    );
     return;
   }
   if (args.command === "estimate-openai-generation") {
@@ -604,6 +622,7 @@ Commands:
   attach-batch-sources --manifest <path> --sources <path> --output <path>
   compile-content-batch --plan <path> --responses <path> --images <path> --output <path>
   audit-content-batch --manifest <path> --output <path>
+  update-draft-sources --manifest <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>

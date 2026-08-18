@@ -42,6 +42,10 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     options: ["manifest", "output"],
     requiresDatabase: false
   },
+  "update-draft-sources": {
+    options: ["manifest"],
+    requiresDatabase: false
+  },
   "estimate-openai-generation": { options: ["package"], requiresDatabase: false },
   "generate-openai-articles": {
     options: ["package", "output", "confirm-max-cost-cents"],
