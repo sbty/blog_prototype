@@ -22,6 +22,8 @@
   "scheduleDateInput": "[aria-label=\"\u65e5\u4ed8\"]",
   "scheduleTimeInput": "[aria-label=\"\u6642\u523b\"]",
   "saveButton": "[jsname=\"x8hlje\"][role=\"button\"], [aria-label*=\"Save\"][role=\"button\"], [data-tooltip*=\"Save\"][role=\"button\"]",
+  "moreOptionsButton": "[aria-label=\"その他のオプション\"][role=\"button\"], [aria-label=\"More options\"][role=\"button\"]",
+  "saveMenuItem": "[role=\"menuitem\"]:has-text(\"保存\"), [role=\"menuitem\"]:has-text(\"Save\")",
   "saveCompleteIndicator": ".DPvwYc.ExSgfc.XMCYre, [aria-label*=\"Changes saved\"], [title*=\"Changes saved\"]",
   "publishButton": "[jsname=\"vdQQuc\"][role=\"button\"], [aria-label*=\"Publish\"], div[role=\"button\"]:has-text(\"Publish\")",
   "publishConfirmButton": "[role=\"button\"]:has-text(\"確定\"), [role=\"button\"]:has-text(\"確認\"), [role=\"button\"]:has-text(\"Confirm\")"

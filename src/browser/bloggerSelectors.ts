@@ -53,6 +53,12 @@ const selectorSchema = z
     saveButton: selectorValue.default(
       '[jsname="x8hlje"][role="button"], [aria-label*="Save"][role="button"], [data-tooltip*="Save"][role="button"]'
     ),
+    moreOptionsButton: selectorValue.default(
+      '[aria-label="\u305d\u306e\u4ed6\u306e\u30aa\u30d7\u30b7\u30e7\u30f3"][role="button"], [aria-label="More options"][role="button"]'
+    ),
+    saveMenuItem: selectorValue.default(
+      '[role="menuitem"]:has-text("\u4fdd\u5b58"), [role="menuitem"]:has-text("Save")'
+    ),
     saveCompleteIndicator: selectorValue.default(
       '.DPvwYc.ExSgfc.XMCYre, [aria-label*="Changes saved"], [title*="Changes saved"]'
     ),
