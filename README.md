@@ -181,6 +181,16 @@ npm run dev -- compile-content-batch --plan examples/article-generation-plan.exa
 
 3つの入力全体が合格した場合だけ、出典情報と検証済み画像パスを含む既存バッチ形式を新規作成します。記事生成、画像生成、Blogger保存は別工程であり、このコマンドから外部通信は発生しません。
 
+### コンテンツバッチ監査
+
+画像付きバッチをBloggerへ渡す前に、記事の文字量、出典リンク、画像、検索向け説明、見出し、ラベル、除外トピックを一括監査できます。
+
+```bash
+npm run dev -- audit-content-batch --manifest data/content-batch.json --output data/content-audit.json
+```
+
+監査はデータベース、ブラウザ、Blogger、AI APIを使用しません。問題がある場合も監査結果JSONを保存してから終了コードを失敗にするため、記事ごとの修正点を確認できます。出典はバッチの`provenance.sourceUrls`と記事本文内のHTTPSリンクを完全一致で照合します。
+
 ### OpenAI Responses APIアダプター
 
 OpenAI Docsの現行モデル案内に基づき、初期アダプターはコスト重視の `gpt-5.6-luna` だけを許可します。まず無料のローカル見積もりを実行します。
