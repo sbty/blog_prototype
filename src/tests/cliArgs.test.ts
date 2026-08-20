@@ -211,6 +211,28 @@ describe("parseArgs", () => {
         "confirm-max-cost-cents": "8"
       }
     });
+    expect(parseArgs(["estimate-openai-remediations", "--package", "remediation.json"])).toEqual({
+      command: "estimate-openai-remediations",
+      options: { package: "remediation.json" }
+    });
+    expect(
+      parseArgs([
+        "generate-openai-remediations",
+        "--package",
+        "remediation.json",
+        "--output",
+        "responses.json",
+        "--confirm-max-cost-cents",
+        "8"
+      ])
+    ).toEqual({
+      command: "generate-openai-remediations",
+      options: {
+        package: "remediation.json",
+        output: "responses.json",
+        "confirm-max-cost-cents": "8"
+      }
+    });
   });
   it("parses a schedule batch manifest command", () => {
     expect(parseArgs(["run-schedule-batch", "--manifest", "schedule-batch.json"])).toEqual({
@@ -387,6 +409,8 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("import-content-remediations")).toBe(false);
     expect(commandRequiresDatabase("estimate-openai-generation")).toBe(false);
     expect(commandRequiresDatabase("generate-openai-articles")).toBe(false);
+    expect(commandRequiresDatabase("estimate-openai-remediations")).toBe(false);
+    expect(commandRequiresDatabase("generate-openai-remediations")).toBe(false);
     expect(commandRequiresDatabase("inspect-schedule-batch")).toBe(false);
     expect(commandRequiresDatabase("list-schedule-batches")).toBe(false);
     expect(commandRequiresDatabase("execute-schedule")).toBe(true);
