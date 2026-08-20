@@ -70,14 +70,14 @@ function prompt(remediationPackage: ContentRemediationPackage): string {
   const lengthRequirements = remediationPackage.requests
     .map(
       (request) =>
-        `${request.remediationId}: ${request.editorialProfile.targetLength.min}-${request.editorialProfile.targetLength.max} visible non-whitespace characters`
+        `${request.remediationId}: ${request.editorialProfile.targetLength.min}-${request.editorialProfile.targetLength.max} visible non-whitespace characters; target ${Math.floor((request.editorialProfile.targetLength.min + request.editorialProfile.targetLength.max) / 2)} characters`
     )
     .join("; ");
   return [
     "Return a complete corrected replacement for every remediation request as the required structured response.",
     "Resolve every audit issue. Preserve each remediationId and slug exactly.",
     "Use every provided source URL exactly once in sourceUrlsUsed and cite it in the article as an HTTPS link.",
-    `The corrected HTML must meet these hard visible-text length ranges: ${lengthRequirements}. Do not exceed a maximum.`,
+    `The corrected HTML must meet these hard visible-text length ranges: ${lengthRequirements}. Aim for each target, do not merely approach the maximum, and never exceed it.`,
     "Do not invent sources, use tools, add active HTML, or include image paths or scheduling data.",
     JSON.stringify(remediationPackage)
   ].join("\n");
