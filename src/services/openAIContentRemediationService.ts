@@ -106,6 +106,22 @@ function assertMatchesPackage(
   }
 }
 
+function extractOutputText(response: {
+  output_text?: string;
+  output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
+}): string {
+  if (response.output_text) return response.output_text;
+  for (const item of response.output ?? []) {
+    for (const content of item.content ?? []) {
+      if (content.type === "refusal" || content.refusal) {
+        throw new Error("OpenAI content remediation was refused");
+      }
+      if (content.type === "output_text" && content.text) return content.text;
+    }
+  }
+  throw new Error("OpenAI content remediation did not contain structured output text");
+}
+
 export class OpenAIContentRemediationService {
   constructor(
     private readonly config: Config,
@@ -199,15 +215,14 @@ export class OpenAIContentRemediationService {
       id?: string;
       status?: string;
       output_text?: string;
+      output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
     };
     if (!apiResponse.ok)
       throw new Error(`OpenAI content remediation failed with HTTP ${apiResponse.status}`);
     if (raw.status && raw.status !== "completed")
       throw new Error(`OpenAI content remediation did not complete: ${raw.status}`);
-    if (!raw.output_text)
-      throw new Error("OpenAI content remediation did not contain structured output text");
     const responses = contentRemediationResponsesSchema.parse(
-      JSON.parse(raw.output_text) as unknown
+      JSON.parse(extractOutputText(raw)) as unknown
     );
     assertMatchesPackage(responses, preflight.package);
     return { responses, estimate: preflight.estimate, responseId: raw.id ?? null };
