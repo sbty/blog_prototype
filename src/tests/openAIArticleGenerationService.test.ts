@@ -259,7 +259,7 @@ describe("OpenAIContentRemediationService", () => {
                       remediationId: "content-remediation-0001",
                       article: {
                         title: "Corrected",
-                        html: '<p><a href="https://example.com/source">Source</a></p>',
+                        html: '<h2>Guide</h2><p><a href="https://example.com/source">Source</a> explains this corrected compatibility guide in sufficient detail.</p>',
                         labels: ["guide"],
                         searchDescription: "Corrected",
                         slug: "original"
@@ -289,5 +289,35 @@ describe("OpenAIContentRemediationService", () => {
       text: { format: { type: "json_schema", strict: true } }
     });
     expect(request).not.toHaveProperty("tools");
+  });
+
+  it("rejects remediation output outside the requested text-length range", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        status: "completed",
+        output_text: JSON.stringify({
+          schemaVersion: 1,
+          items: [
+            {
+              remediationId: "content-remediation-0001",
+              article: {
+                title: "Corrected",
+                html: '<p><a href="https://example.com/source">Source</a></p>',
+                labels: ["guide"],
+                searchDescription: "Corrected",
+                slug: "original"
+              },
+              sourceUrlsUsed: ["https://example.com/source"]
+            }
+          ]
+        })
+      })
+    );
+    await expect(
+      new OpenAIContentRemediationService(config(), fetchMock as unknown as typeof fetch).execute(
+        remediationPackage,
+        8
+      )
+    ).rejects.toThrow("outside 10-1000");
   });
 });
