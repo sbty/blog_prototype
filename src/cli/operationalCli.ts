@@ -29,6 +29,7 @@ import { ContentRemediationPackageService } from "../services/contentRemediation
 import { ContentRemediationImportService } from "../services/contentRemediationImportService.js";
 import { DraftSourceUpdateService } from "../services/draftSourceUpdateService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
+import { OpenAIContentRemediationService } from "../services/openAIContentRemediationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
 import { ScheduleBatchListService } from "../services/scheduleBatchListService.js";
@@ -394,6 +395,59 @@ export async function main(): Promise<void> {
     );
     return;
   }
+  if (args.command === "estimate-openai-remediations") {
+    const packagePath = resolve(requiredString(args.options, "package"));
+    const result = new OpenAIContentRemediationService(config).estimate(
+      await readJsonFile(packagePath)
+    );
+    logger.info(result.estimate, "OpenAI content remediation maximum cost estimate");
+    return;
+  }
+  if (args.command === "generate-openai-remediations") {
+    const packagePath = resolve(requiredString(args.options, "package"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const confirmationText = requiredString(args.options, "confirm-max-cost-cents");
+    if (!/^[1-9]\d*$/.test(confirmationText)) {
+      throw new Error("OpenAI cost confirmation must be a positive integer number of cents");
+    }
+    if (outputPath === packagePath) {
+      throw new Error("OpenAI remediation output must not overwrite its package input");
+    }
+    const packageInput = await readJsonFile<unknown>(packagePath);
+    const service = new OpenAIContentRemediationService(config);
+    const preflight = service.estimate(packageInput);
+    const confirmedMaximumCostCents = Number(confirmationText);
+    if (confirmedMaximumCostCents !== preflight.estimate.maximumCostCents) {
+      throw new Error(
+        `Cost confirmation must exactly match ${preflight.estimate.maximumCostCents} cents`
+      );
+    }
+    if (!config.ENABLE_ARTICLE_GENERATION || !config.OPENAI_API_KEY) {
+      throw new Error(
+        "OpenAI content remediation requires ENABLE_ARTICLE_GENERATION=true and OPENAI_API_KEY"
+      );
+    }
+    const attemptPath = `${outputPath}.attempt.json`;
+    const outputHandle = await open(outputPath, "wx");
+    let result: Awaited<ReturnType<OpenAIContentRemediationService["execute"]>>;
+    try {
+      await writeNewJsonFile(attemptPath, {
+        schemaVersion: 1,
+        createdAt: new Date().toISOString(),
+        packageSha256: createHash("sha256").update(JSON.stringify(preflight.package)).digest("hex"),
+        estimate: preflight.estimate
+      });
+      result = await service.execute(packageInput, confirmedMaximumCostCents);
+      await outputHandle.writeFile(`${JSON.stringify(result.responses, null, 2)}\n`, "utf8");
+    } finally {
+      await outputHandle.close();
+    }
+    logger.info(
+      { outputPath, attemptPath, responseId: result.responseId, estimate: result.estimate },
+      "OpenAI content remediation completed"
+    );
+    return;
+  }
   if (args.command === "list-schedule-batches") {
     const inspector = new ScheduleBatchInspectionService(config);
     const result = await new ScheduleBatchListService(config, inspector).execute();
@@ -690,6 +744,8 @@ Commands:
   update-draft-sources --manifest <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
+  estimate-openai-remediations --package <path>
+  generate-openai-remediations --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>
   run-batch --manifest <path>
   run-schedule-batch --manifest <path>
