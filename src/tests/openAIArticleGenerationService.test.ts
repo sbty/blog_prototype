@@ -289,6 +289,9 @@ describe("OpenAIContentRemediationService", () => {
       text: { format: { type: "json_schema", strict: true } }
     });
     expect(request).not.toHaveProperty("tools");
+    expect(request.input).toContain(
+      "content-remediation-0001: 10-1000 visible non-whitespace characters"
+    );
   });
 
   it("rejects remediation output outside the requested text-length range", async () => {
