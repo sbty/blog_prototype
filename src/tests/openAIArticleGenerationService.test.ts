@@ -247,22 +247,31 @@ describe("OpenAIContentRemediationService", () => {
       Response.json({
         id: "resp_test",
         status: "completed",
-        output_text: JSON.stringify({
-          schemaVersion: 1,
-          items: [
-            {
-              remediationId: "content-remediation-0001",
-              article: {
-                title: "Corrected",
-                html: '<p><a href="https://example.com/source">Source</a></p>',
-                labels: ["guide"],
-                searchDescription: "Corrected",
-                slug: "original"
-              },
-              sourceUrlsUsed: ["https://example.com/source"]
-            }
-          ]
-        })
+        output: [
+          {
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  schemaVersion: 1,
+                  items: [
+                    {
+                      remediationId: "content-remediation-0001",
+                      article: {
+                        title: "Corrected",
+                        html: '<p><a href="https://example.com/source">Source</a></p>',
+                        labels: ["guide"],
+                        searchDescription: "Corrected",
+                        slug: "original"
+                      },
+                      sourceUrlsUsed: ["https://example.com/source"]
+                    }
+                  ]
+                })
+              }
+            ]
+          }
+        ]
       })
     );
     const service = new OpenAIContentRemediationService(
