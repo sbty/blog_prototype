@@ -191,6 +191,30 @@ npm run dev -- audit-content-batch --manifest data/content-batch.json --output d
 
 監査はデータベース、ブラウザ、Blogger、AI APIを使用しません。問題がある場合も監査結果JSONを保存してから終了コードを失敗にするため、記事ごとの修正点を確認できます。出典はバッチの`provenance.sourceUrls`と記事本文内のHTTPSリンクを完全一致で照合します。
 
+### 監査失敗記事の修正依頼と取込
+
+`save-drafts` バッチの監査が失敗した場合だけ、失敗記事だけをAIまたは編集者向けの修正依頼JSONへ取り出せます。
+
+```bash
+npm run dev -- prepare-content-remediation-package --manifest data/content-batch.json --audit data/content-audit.json --output data/content-remediation-package.json
+```
+
+このパッケージには編集方針、記事本文、監査指標・指摘、出典URL、修正契約を含めます。一方、Blogger管理・編集URL、ブログID、ローカル画像パス、予約日時は含めません。パッケージ作成はローカル処理だけで、AI API・データベース・ブラウザ・Bloggerは使用しません。
+
+修正結果は [`examples/content-remediation-responses.example.json`](examples/content-remediation-responses.example.json) の形式で用意し、元バッチと修正依頼パッケージを同時に検証して取り込みます。
+
+```bash
+npm run dev -- import-content-remediations --manifest data/content-batch.json --package data/content-remediation-package.json --responses data/content-remediation-responses.json --output data/corrected-retry-batch.json
+```
+
+取込時は、全修正ID、元記事・編集方針・出典の一致、slug固定、安全なHTMLを検証します。画像パス、予約日時、投稿先ブログ、既存の生成依頼IDは元バッチ側から維持します。修正依頼後に元バッチが変わっていた場合、未知または重複したID、出典不一致、slug変更、プロバイダーが追加した運用フィールドは拒否します。
+
+取込成功はBlogger保存の承認ではありません。`corrected-retry-batch.json` を必ず再監査し、合格した `save-drafts` バッチだけを通常の `run-batch` 経路へ渡してください。
+
+```bash
+npm run dev -- audit-content-batch --manifest data/corrected-retry-batch.json --output data/corrected-retry-audit.json
+```
+
 ### OpenAI Responses APIアダプター
 
 OpenAI Docsの現行モデル案内に基づき、初期アダプターはコスト重視の `gpt-5.6-luna` だけを許可します。まず無料のローカル見積もりを実行します。
@@ -381,6 +405,12 @@ Phase 6では、完成記事の複数ブログ振り分け、プロバイダー�
 ローカル完了条件は [`docs/phase6-completion-checklist.md`](docs/phase6-completion-checklist.md)、v0.3.0候補の公開前確認は [`docs/phase6-release-checklist.md`](docs/phase6-release-checklist.md) に記録しています。自動的な情報源探索、Web上の事実確認、画像生成、無人のAI生成・投稿、および追加のBlogger実操作は含みません。
 
 ローカル完了範囲の引き渡し要約は [`docs/local-completion-handoff.md`](docs/local-completion-handoff.md) にまとめています。
+
+## Phase 7 の状態
+
+Phase 7では、監査に失敗した `save-drafts` バッチの記事だけを修正依頼パッケージへ抽出し、検証済みの修正結果を失敗記事だけの再試行バッチへ戻すローカル境界を実装済みです。Blogger管理情報やローカル運用情報を修正依頼から除外し、取込時には記事・編集方針・出典の改変を検出します。
+
+修正依頼の作成・取込・再監査はいずれもBloggerやAI APIを呼び出しません。AI APIへの実通信、Blogger下書き保存、予約、公開はそれぞれ既存の明示的な別経路と安全確認が必要です。
 
 ## Google ログインで「ログインできませんでした」が出る場合
 
