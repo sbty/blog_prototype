@@ -292,6 +292,7 @@ describe("OpenAIContentRemediationService", () => {
     expect(request.input).toContain(
       "content-remediation-0001: 10-1000 visible non-whitespace characters"
     );
+    expect(request.input).toContain("target 505 characters");
   });
 
   it("rejects remediation output outside the requested text-length range", async () => {
