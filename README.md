@@ -203,6 +203,15 @@ npm run dev -- prepare-content-remediation-package --manifest data/content-batch
 
 修正結果は [`examples/content-remediation-responses.example.json`](examples/content-remediation-responses.example.json) の形式で用意し、元バッチと修正依頼パッケージを同時に検証して取り込みます。
 
+出典URLを持つ修正依頼は、既定無効・金額確認付きのOpenAIアダプターでも生成できます。
+
+```bash
+npm run dev -- estimate-openai-remediations --package data/content-remediation-package.json
+npm run dev -- generate-openai-remediations --package data/content-remediation-package.json --output data/content-remediation-responses.json --confirm-max-cost-cents <cents>
+```
+
+実行には `ENABLE_ARTICLE_GENERATION=true`、`OPENAI_API_KEY`、見積もりと完全一致する金額確認が必要です。出典調査用の外部ツールは有効化しないため、出典URLのない修正依頼は安全側で拒否します。
+
 ```bash
 npm run dev -- import-content-remediations --manifest data/content-batch.json --package data/content-remediation-package.json --responses data/content-remediation-responses.json --output data/corrected-retry-batch.json
 ```
