@@ -154,6 +154,7 @@ contentBatchAuditService.ts
 contentAuditRetryService.ts
 contentRemediationPackageService.ts
 contentRemediationImportService.ts
+openAIContentRemediationService.ts
 draftAuditValidation.ts
 publishedPostAuditService.ts
 ```
@@ -162,7 +163,7 @@ Responsibilities include:
 
 - validating prepared content;
 - identifying content that requires remediation;
-- generating remediation requests and importing validated corrected responses into retry batches;
+- generating remediation requests, optionally creating guarded OpenAI correction responses, and importing validated corrected responses into retry batches;
 - inspecting draft or published-post state where applicable.
 
 Audit failures must not be bypassed merely to allow execution to continue.
