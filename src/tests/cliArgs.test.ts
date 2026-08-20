@@ -166,6 +166,27 @@ describe("parseArgs", () => {
         output: "remediation-package.json"
       }
     });
+    expect(
+      parseArgs([
+        "import-content-remediations",
+        "--manifest",
+        "content-batch.json",
+        "--package",
+        "remediation-package.json",
+        "--responses",
+        "remediation-responses.json",
+        "--output",
+        "corrected-retry-batch.json"
+      ])
+    ).toEqual({
+      command: "import-content-remediations",
+      options: {
+        manifest: "content-batch.json",
+        package: "remediation-package.json",
+        responses: "remediation-responses.json",
+        output: "corrected-retry-batch.json"
+      }
+    });
   });
   it("parses OpenAI generation estimate and execution commands", () => {
     expect(parseArgs(["estimate-openai-generation", "--package", "package.json"])).toEqual({
@@ -363,6 +384,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("update-draft-sources")).toBe(false);
     expect(commandRequiresDatabase("prepare-content-audit-retry")).toBe(false);
     expect(commandRequiresDatabase("prepare-content-remediation-package")).toBe(false);
+    expect(commandRequiresDatabase("import-content-remediations")).toBe(false);
     expect(commandRequiresDatabase("estimate-openai-generation")).toBe(false);
     expect(commandRequiresDatabase("generate-openai-articles")).toBe(false);
     expect(commandRequiresDatabase("inspect-schedule-batch")).toBe(false);

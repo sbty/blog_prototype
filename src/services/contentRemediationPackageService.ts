@@ -95,6 +95,7 @@ export const contentRemediationPackageSchema = z
   .strict()
   .superRefine((remediationPackage, context) => {
     const ids = new Set<string>();
+    const sourceIndexes = new Set<number>();
     remediationPackage.requests.forEach((request, index) => {
       if (ids.has(request.remediationId)) {
         context.addIssue({
@@ -104,6 +105,14 @@ export const contentRemediationPackageSchema = z
         });
       }
       ids.add(request.remediationId);
+      if (sourceIndexes.has(request.sourceIndex)) {
+        context.addIssue({
+          code: "custom",
+          path: ["requests", index, "sourceIndex"],
+          message: `Duplicate remediation sourceIndex: ${request.sourceIndex}`
+        });
+      }
+      sourceIndexes.add(request.sourceIndex);
       if (
         request.provenance.requiresSourceResearch !==
         (request.provenance.sourceUrls.length === 0)

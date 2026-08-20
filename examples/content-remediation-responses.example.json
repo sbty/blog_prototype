@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "remediationId": "content-remediation-0001",
+      "article": {
+        "title": "Can a USB-C Laptop Charger Power a Handheld PC?",
+        "html": "<h2>Compatibility requirements</h2><p>The charger, cable, and handheld must negotiate a supported USB PD profile. Confirm the required wattage and voltage in the <a href=\"https://example.com/official-usb-pd-source\">official specification</a>.</p>",
+        "labels": ["USB-C", "compatibility"],
+        "searchDescription": "Check charger, cable, wattage, and USB PD requirements before powering a handheld PC.",
+        "slug": "usb-c-charger-handheld-pc-compatibility"
+      },
+      "sourceUrlsUsed": ["https://example.com/official-usb-pd-source"]
+    }
+  ]
+}
