@@ -26,6 +26,7 @@ import { ContentBatchCompilerService } from "../services/contentBatchCompilerSer
 import { ContentBatchAuditService } from "../services/contentBatchAuditService.js";
 import { ContentAuditRetryService } from "../services/contentAuditRetryService.js";
 import { ContentRemediationPackageService } from "../services/contentRemediationPackageService.js";
+import { ContentRemediationImportService } from "../services/contentRemediationImportService.js";
 import { DraftSourceUpdateService } from "../services/draftSourceUpdateService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
@@ -295,6 +296,26 @@ export async function main(): Promise<void> {
         remediationIds: remediationPackage.requests.map((request) => request.remediationId)
       },
       "Local content remediation package prepared"
+    );
+    return;
+  }
+  if (args.command === "import-content-remediations") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const packagePath = resolve(requiredString(args.options, "package"));
+    const responsesPath = resolve(requiredString(args.options, "responses"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    if ([manifestPath, packagePath, responsesPath].includes(outputPath)) {
+      throw new Error("Content remediation import output must not overwrite an input file");
+    }
+    const result = new ContentRemediationImportService().execute(
+      await readJsonFile(manifestPath),
+      await readJsonFile(packagePath),
+      await readJsonFile(responsesPath)
+    );
+    await writeNewJsonFile(outputPath, result.manifest);
+    logger.info(
+      { outputPath, importedAssignments: result.importedAssignments },
+      "Corrected content validated and imported to a local retry batch"
     );
     return;
   }
@@ -665,6 +686,7 @@ Commands:
   audit-content-batch --manifest <path> --output <path>
   prepare-content-audit-retry --manifest <path> --audit <path> --output <path>
   prepare-content-remediation-package --manifest <path> --audit <path> --output <path>
+  import-content-remediations --manifest <path> --package <path> --responses <path> --output <path>
   update-draft-sources --manifest <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
