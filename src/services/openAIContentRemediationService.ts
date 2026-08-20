@@ -70,7 +70,7 @@ function prompt(remediationPackage: ContentRemediationPackage): string {
   const lengthRequirements = remediationPackage.requests
     .map(
       (request) =>
-        `${request.remediationId}: ${request.editorialProfile.targetLength.min}-${request.editorialProfile.targetLength.max} visible non-whitespace characters; target ${Math.floor((request.editorialProfile.targetLength.min + request.editorialProfile.targetLength.max) / 2)} characters`
+        `${request.remediationId}: ${request.editorialProfile.targetLength.min}-${request.editorialProfile.targetLength.max} visible non-whitespace characters; target ${Math.floor((request.editorialProfile.targetLength.min + request.editorialProfile.targetLength.max) / 2)} characters and keep below ${request.editorialProfile.targetLength.max - 300}`
     )
     .join("; ");
   return [
