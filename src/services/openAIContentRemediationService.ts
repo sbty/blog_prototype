@@ -77,7 +77,7 @@ function prompt(remediationPackage: ContentRemediationPackage): string {
     "Return a complete corrected replacement for every remediation request as the required structured response.",
     "Resolve every audit issue. Preserve each remediationId and slug exactly.",
     "Use every provided source URL exactly once in sourceUrlsUsed and cite it in the article as an HTTPS link.",
-    `The corrected HTML must meet these hard visible-text length ranges: ${lengthRequirements}. Aim for each target, do not merely approach the maximum, and never exceed it.`,
+    `The corrected HTML must meet these hard visible-text length ranges: ${lengthRequirements}. Keep every article at or below 3000 visible non-whitespace characters, even when its allowed maximum is higher. Aim for each target, do not merely approach the maximum, and never exceed it.`,
     "Do not invent sources, use tools, add active HTML, or include image paths or scheduling data.",
     JSON.stringify(remediationPackage)
   ].join("\n");
