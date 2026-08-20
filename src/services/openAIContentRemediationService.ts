@@ -83,6 +83,16 @@ function sameUrls(expected: string[], actual: string[]): boolean {
   return left.size === right.size && [...left].every((url) => right.has(url));
 }
 
+function visibleTextLength(html: string): number {
+  return Array.from(
+    html
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<style\b[\s\S]*?<\/style\s*>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, "")
+  ).length;
+}
+
 function assertMatchesPackage(
   responses: ContentRemediationResponses,
   remediationPackage: ContentRemediationPackage
@@ -102,6 +112,22 @@ function assertMatchesPackage(
       throw new Error(
         `OpenAI remediation response changed source URLs for ${request.remediationId}`
       );
+    }
+    const textLength = visibleTextLength(response.article.html);
+    if (
+      textLength < request.editorialProfile.targetLength.min ||
+      textLength > request.editorialProfile.targetLength.max
+    ) {
+      throw new Error(
+        `OpenAI remediation response ${request.remediationId} has text length ${textLength} outside ${request.editorialProfile.targetLength.min}-${request.editorialProfile.targetLength.max}`
+      );
+    }
+    for (const sourceUrl of request.provenance.sourceUrls) {
+      if (!response.article.html.includes(sourceUrl)) {
+        throw new Error(
+          `OpenAI remediation response ${request.remediationId} does not cite ${sourceUrl}`
+        );
+      }
     }
   }
 }
