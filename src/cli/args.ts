@@ -63,6 +63,11 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     options: ["package", "output", "confirm-max-cost-cents"],
     requiresDatabase: false
   },
+  "estimate-openai-remediations": { options: ["package"], requiresDatabase: false },
+  "generate-openai-remediations": {
+    options: ["package", "output", "confirm-max-cost-cents"],
+    requiresDatabase: false
+  },
   "prepare-article-queue": { options: ["manifest", "output"], requiresDatabase: false },
   "run-batch": { options: ["manifest"], requiresDatabase: true },
   "run-schedule-batch": { options: ["manifest"], requiresDatabase: true },

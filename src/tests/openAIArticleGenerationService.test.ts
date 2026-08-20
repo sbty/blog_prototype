@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../config/env.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
+import { OpenAIContentRemediationService } from "../services/openAIContentRemediationService.js";
 
 const generationPackage = {
   schemaVersion: 1,
@@ -183,5 +184,101 @@ describe("OpenAIArticleGenerationService", () => {
         8
       )
     ).rejects.toThrow("changed slug");
+  });
+});
+
+describe("OpenAIContentRemediationService", () => {
+  const remediationPackage = {
+    schemaVersion: 1,
+    requests: [
+      {
+        remediationId: "content-remediation-0001",
+        sourceIndex: 0,
+        blogKey: "one",
+        editorialProfile: {
+          displayName: "One",
+          language: "en",
+          targetCountry: "US",
+          primaryTheme: "Guides",
+          targetAudience: [],
+          topicClusters: [],
+          excludedTopics: [],
+          targetLength: { min: 10, max: 1000 }
+        },
+        currentArticle: {
+          title: "Original",
+          html: "<p>Original</p>",
+          labels: [],
+          searchDescription: "Original",
+          slug: "original"
+        },
+        provenance: { sourceUrls: ["https://example.com/source"], requiresSourceResearch: false },
+        audit: {
+          metrics: {
+            textLength: 8,
+            targetLengthMin: 10,
+            targetLengthMax: 1000,
+            sourceCount: 1,
+            citedSourceCount: 1,
+            labelCount: 0,
+            imageBytes: 1
+          },
+          issues: [{ code: "TARGET_LENGTH", severity: "ERROR", message: "Short" }]
+        },
+        correctionRules: [
+          "resolve every listed audit issue",
+          "preserve the slug exactly",
+          "preserve the article topic and search intent",
+          "cite every provided source URL as an HTTPS link",
+          "do not invent source URLs or unsupported claims",
+          "return a complete replacement article"
+        ],
+        outputContract: {
+          requiredFields: ["title", "html", "labels", "searchDescription", "slug"],
+          responseFields: ["remediationId", "article", "sourceUrlsUsed"],
+          preserveImagePathOutOfBand: true,
+          preserveScheduledAtOutOfBand: true
+        }
+      }
+    ]
+  };
+  it("uses a store-free structured response and preserves the remediation contract", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        id: "resp_test",
+        status: "completed",
+        output_text: JSON.stringify({
+          schemaVersion: 1,
+          items: [
+            {
+              remediationId: "content-remediation-0001",
+              article: {
+                title: "Corrected",
+                html: '<p><a href="https://example.com/source">Source</a></p>',
+                labels: ["guide"],
+                searchDescription: "Corrected",
+                slug: "original"
+              },
+              sourceUrlsUsed: ["https://example.com/source"]
+            }
+          ]
+        })
+      })
+    );
+    const service = new OpenAIContentRemediationService(
+      config(),
+      fetchMock as unknown as typeof fetch
+    );
+    const estimate = service.estimate(remediationPackage);
+    expect(fetchMock).not.toHaveBeenCalled();
+    const result = await service.execute(remediationPackage, estimate.estimate.maximumCostCents);
+    expect(result.responses.items[0].remediationId).toBe("content-remediation-0001");
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const request = JSON.parse(String(init.body));
+    expect(request).toMatchObject({
+      store: false,
+      text: { format: { type: "json_schema", strict: true } }
+    });
+    expect(request).not.toHaveProperty("tools");
   });
 });
