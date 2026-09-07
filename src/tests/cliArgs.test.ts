@@ -12,6 +12,185 @@ describe("parseArgs", () => {
       options: { manifest: "batch.json" }
     });
   });
+  it("parses the read-only existing-draft complete audit command", () => {
+    expect(
+      parseArgs([
+        "audit-existing-draft",
+        "--blog",
+        "blog.json",
+        "--article",
+        "article.json",
+        "--post-id",
+        "2222222222",
+        "--editor-url",
+        "https://www.blogger.com/blog/post/edit/1111111111/2222222222",
+        "--output",
+        "audit.json"
+      ])
+    ).toEqual({
+      command: "audit-existing-draft",
+      options: {
+        blog: "blog.json",
+        article: "article.json",
+        "post-id": "2222222222",
+        "editor-url": "https://www.blogger.com/blog/post/edit/1111111111/2222222222",
+        output: "audit.json"
+      }
+    });
+  });
+  it("parses the read-only published-post complete audit command", () => {
+    expect(
+      parseArgs([
+        "audit-published-post-complete",
+        "--blog",
+        "blog.json",
+        "--article",
+        "article.json",
+        "--post-id",
+        "2222222222",
+        "--editor-url",
+        "https://www.blogger.com/blog/post/edit/1111111111/2222222222",
+        "--output",
+        "audit.json"
+      ])
+    ).toEqual({
+      command: "audit-published-post-complete",
+      options: {
+        blog: "blog.json",
+        article: "article.json",
+        "post-id": "2222222222",
+        "editor-url": "https://www.blogger.com/blog/post/edit/1111111111/2222222222",
+        output: "audit.json"
+      }
+    });
+  });
+  it("parses the read-only scheduled permalink audit command", () => {
+    expect(
+      parseArgs([
+        "audit-scheduled-permalinks",
+        "--selection",
+        "selection.json",
+        "--reconciliation",
+        "reconciliation.json",
+        "--output",
+        "audit-dir"
+      ])
+    ).toEqual({
+      command: "audit-scheduled-permalinks",
+      options: {
+        selection: "selection.json",
+        reconciliation: "reconciliation.json",
+        output: "audit-dir"
+      }
+    });
+  });
+  it("parses the read-only scheduled permalink UNVERIFIED re-audit command", () => {
+    expect(
+      parseArgs([
+        "reaudit-scheduled-permalink-unverified",
+        "--selection",
+        "selection.json",
+        "--previous-report",
+        "audit.json",
+        "--output",
+        "reaudit-dir"
+      ])
+    ).toEqual({
+      command: "reaudit-scheduled-permalink-unverified",
+      options: {
+        selection: "selection.json",
+        "previous-report": "audit.json",
+        output: "reaudit-dir"
+      }
+    });
+  });
+  it("parses the read-only scheduled permalink repair preparation command", () => {
+    expect(
+      parseArgs([
+        "prepare-scheduled-permalink-repair",
+        "--selection",
+        "selection.json",
+        "--audit",
+        "audit.json",
+        "--output",
+        "repair-dir"
+      ])
+    ).toEqual({
+      command: "prepare-scheduled-permalink-repair",
+      options: { selection: "selection.json", audit: "audit.json", output: "repair-dir" }
+    });
+  });
+  it("parses the read-only existing-draft complete audit batch command", () => {
+    expect(
+      parseArgs(["audit-existing-draft-batch", "--manifest", "batch.json", "--output", "audit-dir"])
+    ).toEqual({
+      command: "audit-existing-draft-batch",
+      options: { manifest: "batch.json", output: "audit-dir" }
+    });
+  });
+  it("parses the read-only existing-draft audit target selection command", () => {
+    expect(
+      parseArgs([
+        "select-existing-draft-audit-targets",
+        "--manifest",
+        "sources.json",
+        "--output",
+        "selection-dir"
+      ])
+    ).toEqual({
+      command: "select-existing-draft-audit-targets",
+      options: { manifest: "sources.json", output: "selection-dir" }
+    });
+  });
+  it("parses the read-only publication-monitor batch command", () => {
+    expect(
+      parseArgs([
+        "audit-publication-monitors",
+        "--manifest",
+        "monitors.json",
+        "--output",
+        "audit-dir"
+      ])
+    ).toEqual({
+      command: "audit-publication-monitors",
+      options: { manifest: "monitors.json", output: "audit-dir" }
+    });
+  });
+  it("accepts explicit UNVERIFIED retry only for publication-monitor batches", () => {
+    expect(
+      parseArgs([
+        "audit-publication-monitors",
+        "--manifest",
+        "monitors.json",
+        "--output",
+        "audit-dir",
+        "--retry-unverified",
+        "true"
+      ]).options["retry-unverified"]
+    ).toBe("true");
+  });
+  it("parses the local existing-draft audit selection preparation command", () => {
+    expect(
+      parseArgs([
+        "prepare-existing-draft-audit-selection",
+        "--manifest",
+        "sources.json",
+        "--output",
+        "output-dir"
+      ])
+    ).toEqual({
+      command: "prepare-existing-draft-audit-selection",
+      options: { manifest: "sources.json", output: "output-dir" }
+    });
+  });
+  it("parses an explicit existing-draft update command", () => {
+    expect(
+      parseArgs(["update-existing-drafts", "--manifest", "batch.json", "--targets", "targets.json"])
+    ).toEqual({
+      command: "update-existing-drafts",
+      options: { manifest: "batch.json", targets: "targets.json" }
+    });
+  });
   it("parses a local article queue preparation command", () => {
     expect(
       parseArgs(["prepare-article-queue", "--manifest", "queue.json", "--output", "batch.json"])
@@ -397,7 +576,16 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("help")).toBe(false);
     expect(commandRequiresDatabase("open-login")).toBe(false);
     expect(commandRequiresDatabase("audit-drafts")).toBe(false);
+    expect(commandRequiresDatabase("audit-existing-draft")).toBe(false);
+    expect(commandRequiresDatabase("audit-existing-draft-batch")).toBe(false);
+    expect(commandRequiresDatabase("select-existing-draft-audit-targets")).toBe(false);
+    expect(commandRequiresDatabase("prepare-existing-draft-audit-selection")).toBe(false);
     expect(commandRequiresDatabase("audit-published-post")).toBe(false);
+    expect(commandRequiresDatabase("audit-published-post-complete")).toBe(false);
+    expect(commandRequiresDatabase("audit-scheduled-permalinks")).toBe(false);
+    expect(commandRequiresDatabase("reaudit-scheduled-permalink-unverified")).toBe(false);
+    expect(commandRequiresDatabase("prepare-scheduled-permalink-repair")).toBe(false);
+    expect(commandRequiresDatabase("audit-publication-monitors")).toBe(false);
     expect(commandRequiresDatabase("prepare-article-queue")).toBe(false);
     expect(commandRequiresDatabase("prepare-generation-package")).toBe(false);
     expect(commandRequiresDatabase("import-generated-articles")).toBe(false);

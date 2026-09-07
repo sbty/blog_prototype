@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { requireDryRunEditorTarget } from "../browser/bloggerDryRun.js";
 import {
   extractBloggerBlogId,
+  extractBloggerPostId,
+  normalizeBloggerEditUrl,
   validateBloggerEditorIdentity
 } from "../browser/bloggerEditorIdentity.js";
 
@@ -27,6 +29,15 @@ describe("Blogger editor identity", () => {
   it("extracts blog IDs from list and editor URLs", () => {
     expect(extractBloggerBlogId("https://www.blogger.com/blog/posts/123")).toBe("123");
     expect(extractBloggerBlogId("https://www.blogger.com/blog/post/edit/456/789")).toBe("456");
+  });
+
+  it("normalizes a relative post-list editor link without nesting it under /blog/posts", () => {
+    const url = normalizeBloggerEditUrl(
+      "blog/post/edit/123/456",
+      "https://www.blogger.com/blog/posts/123"
+    );
+    expect(url).toBe("https://www.blogger.com/blog/post/edit/123/456");
+    expect(extractBloggerPostId(url)).toBe("456");
   });
 
   it("accepts the configured blog editor", () => {

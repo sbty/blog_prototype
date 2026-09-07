@@ -1,9 +1,8 @@
-import { chromium, type BrowserContext, type Page } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { type BrowserContext, type Page } from "@playwright/test";
 import path from "node:path";
 import type { AppConfig } from "../config/env.js";
 import type { BloggerSelectors } from "./bloggerSelectors.js";
-import { getChromeProfilePath } from "./chromeProfile.js";
+import { launchChromePersistentContext } from "./chromeContext.js";
 import { validateBloggerEditorIdentity } from "./bloggerEditorIdentity.js";
 
 export interface DraftSourceUpdateTarget {
@@ -224,17 +223,6 @@ export class BloggerDraftSourceUpdater {
   }
 
   private async openContext(): Promise<BrowserContext> {
-    const profilePath = getChromeProfilePath(this.config);
-    await mkdir(profilePath, { recursive: true });
-    return chromium.launchPersistentContext(profilePath, {
-      headless: this.config.HEADLESS,
-      executablePath: this.config.CHROME_EXECUTABLE_PATH || undefined,
-      channel: this.config.CHROME_EXECUTABLE_PATH
-        ? undefined
-        : this.config.CHROME_CHANNEL || "chrome",
-      locale: "ja-JP",
-      timezoneId: this.config.APP_TIMEZONE,
-      viewport: { width: 1920, height: 1080 }
-    });
+    return launchChromePersistentContext(this.config);
   }
 }

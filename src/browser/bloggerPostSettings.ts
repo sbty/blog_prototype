@@ -56,12 +56,11 @@ export class BloggerPostSettings {
   ): Promise<PostSettingsResult> {
     const settings = normalizePostSettings(article);
     if (settings.labels.length > 0) {
-      await this.expandAndFill(
+      await this.expandAndTypeLabels(
         page,
         this.selectors.labelsButton,
         this.selectors.labelsInput,
         settings.labels.join(", "),
-        "labels",
         assertCanMutate
       );
     }
@@ -74,21 +73,82 @@ export class BloggerPostSettings {
       assertCanMutate
     );
 
+    await this.applyCustomPermalinkOnly(page, settings.slug, assertCanMutate);
+    return { ...settings, applied: true };
+  }
+
+  /** Applies only the custom permalink; all other post settings remain untouched. */
+  async applyCustomPermalinkOnly(
+    page: Page,
+    slug: string,
+    assertCanMutate?: () => Promise<void>,
+    options: { blurAfterInput?: boolean } = {}
+  ): Promise<string> {
+    const normalized = slug.trim().toLowerCase();
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized)) {
+      throw new Error(
+        "Blogger custom permalink must contain only lowercase ASCII letters, numbers, and hyphens"
+      );
+    }
     const permalinkButton = await this.firstVisible(page.locator(this.selectors.permalinkButton));
     if (!permalinkButton) throw new Error("Blogger permalink section was not detected");
     await performPostSettingsMutationWithGuard(assertCanMutate, () => permalinkButton.click());
     const customPermalink = await this.firstVisible(
       page.locator(this.selectors.customPermalinkOption)
     );
-    if (!customPermalink) throw new Error("Blogger custom permalink option was not detected");
+    if (!customPermalink) {
+      throw new Error(
+        "Blogger custom permalink control is unavailable: this editor exposes only an automatic permalink preview"
+      );
+    }
     if ((await customPermalink.getAttribute("aria-checked")) !== "true") {
       await performPostSettingsMutationWithGuard(assertCanMutate, () => customPermalink.click());
     }
     const permalinkInput = await this.firstEditable(page.locator(this.selectors.permalinkInput));
     if (!permalinkInput) throw new Error("Blogger custom permalink input was not detected");
-    await performPostSettingsMutationWithGuard(assertCanMutate, () => permalinkInput.fill(settings.slug));
-    validatePostSettingField("custom permalink", await permalinkInput.inputValue(), settings.slug);
-    return { ...settings, applied: true };
+    // The Blogger editor can render a value written by fill() without syncing
+    // its internal permalink model. Replay normal input. Most callers blur to
+    // commit the field; permalink-only repair deliberately keeps focus so its
+    // guarded Save can consume the dirty value before the preview RPC does.
+    await performPostSettingsMutationWithGuard(assertCanMutate, async () => {
+      await permalinkInput.click();
+      await permalinkInput.press("Control+A");
+      await permalinkInput.press("Backspace");
+      await permalinkInput.type(normalized);
+      if (options.blurAfterInput !== false) await permalinkInput.press("Tab");
+    });
+    validatePostSettingField("custom permalink", await permalinkInput.inputValue(), normalized);
+    return normalized;
+  }
+
+  /**
+   * Blogger's label field is an autocomplete textarea. `fill()` updates the
+   * visible value but, in the live editor, does not consistently commit the
+   * label model before a Save. Replaying normal keyboard input followed by a
+   * blur commits the comma-separated labels just as the UI expects.
+   */
+  private async expandAndTypeLabels(
+    page: Page,
+    buttonSelector: string,
+    inputSelector: string,
+    value: string,
+    assertCanMutate?: () => Promise<void>
+  ): Promise<void> {
+    const button = await this.firstVisible(page.locator(buttonSelector));
+    if (!button) throw new Error("Blogger labels section was not detected");
+    const expanded = (await button.getAttribute("aria-expanded")) === "true";
+    if (!expanded)
+      await performPostSettingsMutationWithGuard(assertCanMutate, () => button.click());
+    const input = await this.firstEditable(page.locator(inputSelector));
+    if (!input) throw new Error("Blogger labels input was not detected");
+    await performPostSettingsMutationWithGuard(assertCanMutate, async () => {
+      await input.click();
+      await input.press("Control+A");
+      await input.press("Backspace");
+      await input.type(value);
+      await input.press("Tab");
+    });
+    validatePostSettingField("labels", await input.inputValue(), value);
   }
 
   private async expandAndFill(
@@ -102,7 +162,8 @@ export class BloggerPostSettings {
     const button = await this.firstVisible(page.locator(buttonSelector));
     if (!button) throw new Error(`Blogger ${fieldName} section was not detected`);
     const expanded = (await button.getAttribute("aria-expanded")) === "true";
-    if (!expanded) await performPostSettingsMutationWithGuard(assertCanMutate, () => button.click());
+    if (!expanded)
+      await performPostSettingsMutationWithGuard(assertCanMutate, () => button.click());
     const input = await this.firstEditable(page.locator(inputSelector));
     if (!input) throw new Error(`Blogger ${fieldName} input was not detected`);
     await performPostSettingsMutationWithGuard(assertCanMutate, () => input.fill(value));

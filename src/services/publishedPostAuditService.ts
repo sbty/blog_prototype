@@ -15,6 +15,7 @@ function isAllowedPublishedImageHost(hostname: string, blogHostname: string): bo
 }
 
 export interface PublishedPostAuditResult {
+  postId?: string;
   title: string;
   matchCount: 1;
   publicUrl: string;
@@ -29,11 +30,17 @@ export interface PublishedPostAuditResult {
 }
 
 interface FeedEntry {
+  id?: { $t?: unknown };
   title?: { $t?: unknown };
   published?: { $t?: unknown };
   updated?: { $t?: unknown };
   content?: { $t?: unknown };
   link?: Array<{ rel?: unknown; href?: unknown }>;
+}
+
+function extractBloggerPostId(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return value.match(/\.post-(\d{10,30})$/)?.[1];
 }
 
 export class PublishedPostAuditService {
@@ -45,6 +52,7 @@ export class PublishedPostAuditService {
   async execute(input: {
     blog: BlogConfig;
     article: ArticleInput;
+    postId?: string;
   }): Promise<PublishedPostAuditResult> {
     if (!input.blog.publicUrl) throw new Error("Published post audit requires blog.publicUrl");
     const blogUrl = new URL(input.blog.publicUrl);
@@ -67,15 +75,18 @@ export class PublishedPostAuditService {
     } catch {
       throw new Error("Published post feed is not valid JSON");
     }
-    const matches = (feed.feed?.entry ?? []).filter(
-      (entry) => entry.title?.$t === input.article.title
-    );
+    const matches = (feed.feed?.entry ?? []).filter((entry) => {
+      if (entry.title?.$t !== input.article.title) return false;
+      return !input.postId || extractBloggerPostId(entry.id?.$t) === input.postId;
+    });
     if (matches.length !== 1) {
       throw new Error(
         `Published post audit expected exactly one title match, found ${matches.length}`
       );
     }
     const entry = matches[0];
+    const postId = extractBloggerPostId(entry.id?.$t);
+    if (input.postId && !postId) throw new Error("Published post audit found no Blogger post ID");
     const publishedAt = entry.published?.$t;
     const updatedAt = entry.updated?.$t;
     const content = entry.content?.$t;
@@ -123,6 +134,7 @@ export class PublishedPostAuditService {
     if (verifiedImageBytes <= 0) throw new Error("Published image is empty");
     if (verifiedImageBytes > MAX_IMAGE_BYTES) throw new Error("Published image is too large");
     return {
+      ...(postId ? { postId } : {}),
       title: input.article.title,
       matchCount: 1,
       publicUrl: publicUrl.toString(),

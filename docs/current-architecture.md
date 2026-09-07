@@ -88,6 +88,8 @@ Examples:
 - batches
 - batch images
 - batch sources
+- persisted-draft comparison and existing-draft audit selection
+- publication-monitor manifests
 - jobs
 - schedule batches
 - schedule campaigns
@@ -167,6 +169,25 @@ Responsibilities include:
 - inspecting draft or published-post state where applicable.
 
 Audit failures must not be bypassed merely to allow execution to continue.
+
+---
+
+#### Existing-post audit and publication monitoring
+
+Relevant files include:
+
+```text
+existingDraftAuditSelectionPreparationService.ts
+existingDraftAuditSelectionService.ts
+existingDraftCompleteAuditService.ts
+existingDraftCompleteAuditBatchService.ts
+scheduledPermalinkAuditService.ts
+scheduledPermalinkRepairPreparationService.ts
+publishedPostCompleteAuditService.ts
+publicationMonitorBatchService.ts
+```
+
+These workflows select explicitly identified posts, compare a fresh Blogger read with a local canonical article, aggregate per-item results, re-audit transiently unverified scheduled permalinks, prepare approval-only repair evidence, and monitor due publications. Audit and repair-preparation commands are read-only with respect to Blogger. Their reports are evidence, not authority to save, schedule, publish, repair, or delete a post.
 
 ---
 
@@ -253,6 +274,7 @@ bloggerPostSettings.ts
 bloggerSchedulePreview.ts
 bloggerSelectors.ts
 bloggerSessionGuard.ts
+chromeContext.ts
 chromeProfile.ts
 dryRunNetworkGuard.ts
 imageFile.ts
@@ -304,7 +326,7 @@ index.ts
 operationalCli.ts
 ```
 
-The CLI should orchestrate existing services rather than reimplement domain or workflow logic.
+The CLI should orchestrate existing services rather than reimplement domain or workflow logic. Read-only audit, repair-preparation, draft mutation, scheduling, publication, and deletion commands must remain visibly separate. Output reports use new paths and must not overwrite prior evidence.
 
 ---
 

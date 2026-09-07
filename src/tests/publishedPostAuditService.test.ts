@@ -5,9 +5,11 @@ import { PublishedPostAuditService } from "../services/publishedPostAuditService
 
 const blog = { publicUrl: "https://example.blogspot.com/" } as BlogConfig;
 const article = { title: "公開後監査テスト" } as ArticleInput;
+const postId = "2222222222";
 
 function entry(overrides: Record<string, unknown> = {}) {
   return {
+    id: { $t: `tag:blogger.com,1999:blog-1111111111.post-${postId}` },
     title: { $t: article.title },
     published: { $t: "2026-08-05T22:00:00.000+09:00" },
     updated: { $t: "2026-08-05T22:00:00.000+09:00" },
@@ -39,10 +41,11 @@ describe("PublishedPostAuditService", () => {
     const result = await new PublishedPostAuditService(
       fetchImpl,
       () => new Date("2026-08-06T00:00:00.000Z")
-    ).execute({ blog, article });
+    ).execute({ blog, article, postId });
 
     expect(result).toMatchObject({
       title: article.title,
+      postId,
       matchCount: 1,
       contentPresent: true,
       imageCount: 1,
@@ -51,6 +54,22 @@ describe("PublishedPostAuditService", () => {
       auditedAt: "2026-08-06T00:00:00.000Z"
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a title match whose feed post ID is not the requested post", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(feedResponse([entry()])) as unknown as typeof fetch;
+    await expect(
+      new PublishedPostAuditService(fetchImpl).execute({ blog, article, postId: "3333333333" })
+    ).rejects.toThrow("expected exactly one title match, found 0");
+  });
+
+  it("requires a feed post ID when a complete audit supplies one", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(feedResponse([entry({ id: undefined })])) as unknown as typeof fetch;
+    await expect(
+      new PublishedPostAuditService(fetchImpl).execute({ blog, article, postId })
+    ).rejects.toThrow("expected exactly one title match, found 0");
   });
 
   it.each([

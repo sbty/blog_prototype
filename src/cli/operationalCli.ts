@@ -1,13 +1,21 @@
-import { open, readFile, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { openChromeForManualLogin } from "../browser/chromeProfile.js";
 import { BloggerDryRunClient } from "../browser/bloggerDryRun.js";
 import { loadBloggerSelectors } from "../browser/bloggerSelectors.js";
 import { blogConfigSchema } from "../config/blogConfig.js";
 import { loadConfig } from "../config/env.js";
 import { articleInputSchema } from "../domain/article.js";
+import {
+  publicationMonitorBatchManifestSchema,
+  publicationMonitorFileSchema,
+  publicationMonitorScheduleAuditSchema
+} from "../domain/publicationMonitor.js";
 import { batchManifestSchema } from "../domain/batch.js";
+import { existingDraftAuditBatchManifestSchema } from "../domain/existingDraftAuditBatch.js";
+import { existingDraftAuditSelectionManifestSchema } from "../domain/existingDraftAuditSelection.js";
+import { existingDraftAuditSelectionPreparationManifestSchema } from "../domain/existingDraftAuditSelectionPreparation.js";
 import { createLogger } from "../logging/logger.js";
 import { ArticleRepository } from "../repositories/articleRepository.js";
 import { BlogRepository } from "../repositories/blogRepository.js";
@@ -15,6 +23,16 @@ import { withMigratedDatabase } from "../repositories/database.js";
 import { JobRepository } from "../repositories/jobRepository.js";
 import { DryRunService } from "../services/dryRunService.js";
 import { DraftSaveService } from "../services/draftSaveService.js";
+import { ExistingDraftCompleteAuditService } from "../services/existingDraftCompleteAuditService.js";
+import {
+  ExistingDraftCompleteAuditBatchService,
+  type ExistingDraftCompleteAuditBatchItemInput
+} from "../services/existingDraftCompleteAuditBatchService.js";
+import {
+  ExistingDraftAuditSelectionService,
+  type ExistingDraftAuditSelectionItemInput
+} from "../services/existingDraftAuditSelectionService.js";
+import { ExistingDraftAuditSelectionPreparationService } from "../services/existingDraftAuditSelectionPreparationService.js";
 import { BatchExecutionService } from "../services/batchExecutionService.js";
 import { ArticleQueueRoutingService } from "../services/articleQueueRoutingService.js";
 import { ArticleGenerationPackageService } from "../services/articleGenerationPackageService.js";
@@ -48,6 +66,19 @@ import { SchedulePreviewConfirmationService } from "../services/schedulePreviewC
 import { ScheduleExecutionPackageService } from "../services/scheduleExecutionPackageService.js";
 import { ScheduleExecutionPackageAuditService } from "../services/scheduleExecutionPackageAuditService.js";
 import { PublishedPostAuditService } from "../services/publishedPostAuditService.js";
+import { PublishedPostCompleteAuditService } from "../services/publishedPostCompleteAuditService.js";
+import {
+  buildScheduledPermalinkReauditRepairReport,
+  ScheduledPermalinkAuditService,
+  type ScheduledPermalinkAuditItem,
+  type ScheduledPermalinkAuditTarget
+} from "../services/scheduledPermalinkAuditService.js";
+import { ScheduledPermalinkRepairPreparationService } from "../services/scheduledPermalinkRepairPreparationService.js";
+import {
+  PublicationMonitorBatchService,
+  type PublicationMonitorCanonicalItem,
+  type PublicationMonitorSource
+} from "../services/publicationMonitorBatchService.js";
 import { ScheduledPostExecutionService } from "../services/scheduledPostExecutionService.js";
 import { parseJsonWithBom } from "../utils/json.js";
 
@@ -69,6 +100,84 @@ async function writeNewJsonFile(filePath: string, value: unknown): Promise<void>
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, {
     encoding: "utf8",
     flag: "wx"
+  });
+}
+
+function prepareExistingDraftUpdateBatch(manifestInput: unknown, targetsInput: unknown) {
+  const manifest = batchManifestSchema.parse(manifestInput);
+  if (manifest.operation !== "save-drafts") {
+    throw new Error("Existing draft update requires a save-drafts batch manifest");
+  }
+  if (
+    !targetsInput ||
+    typeof targetsInput !== "object" ||
+    !Array.isArray((targetsInput as { targets?: unknown }).targets)
+  ) {
+    throw new Error("Existing draft update targets must contain a targets array");
+  }
+  const targets = (targetsInput as { targets: unknown[] }).targets.map((value) => {
+    if (!value || typeof value !== "object")
+      throw new Error("Existing draft update target must be an object");
+    const target = value as Record<string, unknown>;
+    if (
+      typeof target.blogKey !== "string" ||
+      typeof target.slug !== "string" ||
+      typeof target.postEditorUrl !== "string"
+    ) {
+      throw new Error("Existing draft update target requires blogKey, slug, and postEditorUrl");
+    }
+    const postEditorUrl = new URL(target.postEditorUrl);
+    if (
+      postEditorUrl.protocol !== "https:" ||
+      !["www.blogger.com", "blogger.com"].includes(postEditorUrl.hostname) ||
+      !/^\/blog\/post\/edit\/\d+\/\d+\/?$/.test(postEditorUrl.pathname) ||
+      postEditorUrl.search ||
+      postEditorUrl.hash
+    ) {
+      throw new Error("Existing draft update target must use a canonical Blogger post editor URL");
+    }
+    return { blogKey: target.blogKey, slug: target.slug, postEditorUrl: target.postEditorUrl };
+  });
+  const keys = new Set<string>();
+  for (const target of targets) {
+    const key = `${target.blogKey}\0${target.slug}`;
+    if (keys.has(key))
+      throw new Error(`Duplicate existing draft update target: ${target.blogKey}/${target.slug}`);
+    keys.add(key);
+  }
+  if (targets.length === 0) throw new Error("Existing draft update requires at least one target");
+
+  const blogs = new Map(manifest.blogs.map((blog) => [blog.blogKey, blog]));
+  const items = targets.map((target) => {
+    const blog = blogs.get(target.blogKey);
+    const item = manifest.items.find(
+      (candidate) => candidate.blogKey === target.blogKey && candidate.article.slug === target.slug
+    );
+    if (!blog || !item) {
+      throw new Error(
+        `Existing draft update target is not in the batch: ${target.blogKey}/${target.slug}`
+      );
+    }
+    const expectedBlogId = new URL(blog.adminUrl).pathname.match(/^\/blog\/posts\/(\d+)/)?.[1];
+    const targetBlogId = new URL(target.postEditorUrl).pathname.match(
+      /^\/blog\/post\/edit\/(\d+)\//
+    )?.[1];
+    if (!expectedBlogId || expectedBlogId !== targetBlogId) {
+      throw new Error(
+        `Existing draft update target belongs to a different blog: ${target.blogKey}/${target.slug}`
+      );
+    }
+    return item;
+  });
+  const selectedBlogs = targets.map((target) => {
+    const blog = blogs.get(target.blogKey)!;
+    return { ...blog, blogger: { ...blog.blogger, postEditorUrl: target.postEditorUrl } };
+  });
+  return batchManifestSchema.parse({
+    operation: "save-drafts",
+    continueOnError: true,
+    blogs: selectedBlogs,
+    items
   });
 }
 
@@ -113,6 +222,570 @@ export async function main(): Promise<void> {
     );
     const result = await new PublishedPostAuditService().execute({ blog, article });
     logger.info(result, "Published post audit result");
+    return;
+  }
+  if (args.command === "audit-published-post-complete") {
+    const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+    const article = articleInputSchema.parse(
+      await readJsonFile(requiredString(args.options, "article"))
+    );
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const report = await new PublishedPostCompleteAuditService(config).execute({
+      blog,
+      article,
+      postId: requiredString(args.options, "post-id"),
+      postEditorUrl: requiredString(args.options, "editor-url")
+    });
+    await writeNewJsonFile(outputPath, report);
+    logger.info(
+      { outputPath, status: report.status, reasons: report.reasons },
+      "Published post complete audit result"
+    );
+    return;
+  }
+  if (args.command === "audit-scheduled-permalinks") {
+    const selectionPath = resolve(requiredString(args.options, "selection"));
+    const reconciliationPath = resolve(requiredString(args.options, "reconciliation"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const selection = existingDraftAuditSelectionManifestSchema.parse(
+      await readJsonFile<unknown>(selectionPath)
+    );
+    const reconciliation = await readJsonFile<{ items?: unknown }>(reconciliationPath);
+    if (!reconciliation.items || !Array.isArray(reconciliation.items)) {
+      throw new Error("Scheduled permalink audit reconciliation must contain items");
+    }
+    const canonicalItems = await Promise.all(
+      selection.items.map(async (item) => ({
+        ...item,
+        blog: blogConfigSchema.parse(
+          await readJsonFile(resolve(dirname(selectionPath), item.blogPath))
+        ),
+        article: articleInputSchema.parse(
+          await readJsonFile(resolve(dirname(selectionPath), item.articlePath))
+        )
+      }))
+    );
+    const canonicalByKey = new Map(
+      canonicalItems.map((item) => [`${item.batch}\0${item.blog.blogKey}\0${item.slug}`, item])
+    );
+    const targets: ScheduledPermalinkAuditTarget[] = reconciliation.items.flatMap((value) => {
+      if (!value || typeof value !== "object")
+        throw new Error("Scheduled permalink reconciliation item must be an object");
+      const item = value as Record<string, unknown>;
+      if (item.currentState !== "SCHEDULED") return [];
+      if (
+        typeof item.batch !== "string" ||
+        typeof item.blogKey !== "string" ||
+        typeof item.slug !== "string" ||
+        typeof item.postId !== "string" ||
+        typeof item.expectedSchedule !== "string"
+      ) {
+        throw new Error(
+          "Scheduled permalink reconciliation item is missing identity or schedule evidence"
+        );
+      }
+      const canonical = canonicalByKey.get(`${item.batch}\0${item.blogKey}\0${item.slug}`);
+      if (!canonical || canonical.postId !== item.postId) {
+        throw new Error(
+          `Scheduled permalink canonical source mismatch: ${item.batch}/${item.slug}`
+        );
+      }
+      if (canonical.article.title !== item.title) {
+        throw new Error(`Scheduled permalink title mismatch: ${item.batch}/${item.slug}`);
+      }
+      return [
+        {
+          batch: canonical.batch,
+          blog: canonical.blog,
+          article: canonical.article,
+          postId: canonical.postId,
+          postEditorUrl: canonical.postEditorUrl,
+          scheduledAtJst: item.expectedSchedule
+        }
+      ];
+    });
+    const service = new ScheduledPermalinkAuditService(
+      async (blog) =>
+        new BloggerDryRunClient(config, await loadBloggerSelectors(blog.blogger.selectorsPath))
+    );
+    service.validatePreflight(targets);
+    await mkdir(outputPath, { recursive: false });
+    const report = await service.execute(targets);
+    const reportPath = join(outputPath, "scheduled-permalink-audit-report.json");
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    logger.info(
+      { outputPath, reportPath, counts: report.counts },
+      "Scheduled permalink audit result"
+    );
+    return;
+  }
+  if (args.command === "reaudit-scheduled-permalink-unverified") {
+    const selectionPath = resolve(requiredString(args.options, "selection"));
+    const previousReportPath = resolve(requiredString(args.options, "previous-report"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const selection = existingDraftAuditSelectionManifestSchema.parse(
+      await readJsonFile<unknown>(selectionPath)
+    );
+    const previous = await readJsonFile<{ items?: unknown }>(previousReportPath);
+    if (!Array.isArray(previous.items)) {
+      throw new Error("Scheduled permalink re-audit report must contain items");
+    }
+    const priorItems = previous.items.map((value): ScheduledPermalinkAuditItem => {
+      if (!value || typeof value !== "object")
+        throw new Error("Scheduled permalink re-audit item must be an object");
+      const item = value as Record<string, unknown>;
+      if (
+        typeof item.batch !== "string" ||
+        typeof item.blogKey !== "string" ||
+        typeof item.slug !== "string" ||
+        typeof item.postId !== "string" ||
+        typeof item.postEditorUrl !== "string" ||
+        typeof item.expectedScheduledAtJst !== "string" ||
+        (item.status !== "PASS" && item.status !== "FAIL" && item.status !== "UNVERIFIED") ||
+        (item.permalink !== "MATCH" &&
+          item.permalink !== "EMPTY" &&
+          item.permalink !== "DIFFERENT" &&
+          item.permalink !== "UNVERIFIED") ||
+        !Array.isArray(item.reasons) ||
+        typeof item.attempts !== "number" ||
+        typeof item.auditedAt !== "string"
+      ) {
+        throw new Error("Scheduled permalink re-audit item is missing required audit fields");
+      }
+      return item as unknown as ScheduledPermalinkAuditItem;
+    });
+    const canonicalItems = await Promise.all(
+      selection.items.map(async (item) => ({
+        ...item,
+        blog: blogConfigSchema.parse(
+          await readJsonFile(resolve(dirname(selectionPath), item.blogPath))
+        ),
+        article: articleInputSchema.parse(
+          await readJsonFile(resolve(dirname(selectionPath), item.articlePath))
+        )
+      }))
+    );
+    const canonicalByKey = new Map(
+      canonicalItems.map((item) => [`${item.batch}\0${item.blog.blogKey}\0${item.slug}`, item])
+    );
+    const targets: ScheduledPermalinkAuditTarget[] = priorItems
+      .filter((item) => item.status === "UNVERIFIED")
+      .map((item) => {
+        const canonical = canonicalByKey.get(`${item.batch}\0${item.blogKey}\0${item.slug}`);
+        if (
+          !canonical ||
+          canonical.postId !== item.postId ||
+          canonical.postEditorUrl !== item.postEditorUrl
+        ) {
+          throw new Error(
+            `Scheduled permalink re-audit canonical source mismatch: ${item.batch}/${item.slug}`
+          );
+        }
+        return {
+          batch: canonical.batch,
+          blog: canonical.blog,
+          article: canonical.article,
+          postId: canonical.postId,
+          postEditorUrl: canonical.postEditorUrl,
+          scheduledAtJst: item.expectedScheduledAtJst
+        };
+      });
+    if (targets.length === 0)
+      throw new Error("Scheduled permalink re-audit has no UNVERIFIED targets");
+    const service = new ScheduledPermalinkAuditService(
+      async (blog) =>
+        new BloggerDryRunClient(config, await loadBloggerSelectors(blog.blogger.selectorsPath)),
+      () => new Date(),
+      4,
+      2
+    );
+    service.validatePreflight(targets);
+    await mkdir(outputPath, { recursive: false });
+    const reaudited = await service.execute(targets);
+    const report = buildScheduledPermalinkReauditRepairReport({
+      priorReportPath: previousReportPath,
+      priorItems,
+      reauditedItems: reaudited.items
+    });
+    const reportPath = join(outputPath, "scheduled-permalink-reaudit-repair-report.json");
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    logger.info(
+      { outputPath, reportPath, counts: report.counts },
+      "Scheduled permalink re-audit result"
+    );
+    return;
+  }
+  if (args.command === "prepare-scheduled-permalink-repair") {
+    const selectionPath = resolve(requiredString(args.options, "selection"));
+    const auditPath = resolve(requiredString(args.options, "audit"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const selection = existingDraftAuditSelectionManifestSchema.parse(
+      await readJsonFile<unknown>(selectionPath)
+    );
+    const audit = await readJsonFile<{ items?: unknown; candidates?: unknown }>(auditPath);
+    if (!Array.isArray(audit.items) || !audit.candidates || typeof audit.candidates !== "object") {
+      throw new Error(
+        "Scheduled permalink repair preparation audit must contain items and candidates"
+      );
+    }
+    const parseItem = (value: unknown): ScheduledPermalinkAuditItem => {
+      if (!value || typeof value !== "object")
+        throw new Error("Scheduled permalink repair preparation item must be an object");
+      const item = value as Record<string, unknown>;
+      if (
+        typeof item.batch !== "string" ||
+        typeof item.blogKey !== "string" ||
+        typeof item.slug !== "string" ||
+        typeof item.postId !== "string" ||
+        typeof item.postEditorUrl !== "string" ||
+        typeof item.expectedScheduledAtJst !== "string" ||
+        (item.status !== "PASS" && item.status !== "FAIL" && item.status !== "UNVERIFIED") ||
+        (item.permalink !== "MATCH" &&
+          item.permalink !== "EMPTY" &&
+          item.permalink !== "DIFFERENT" &&
+          item.permalink !== "UNVERIFIED") ||
+        !Array.isArray(item.reasons) ||
+        typeof item.attempts !== "number" ||
+        typeof item.auditedAt !== "string"
+      ) {
+        throw new Error(
+          "Scheduled permalink repair preparation item is missing required audit fields"
+        );
+      }
+      return item as unknown as ScheduledPermalinkAuditItem;
+    };
+    const candidateInput = audit.candidates as Record<string, unknown>;
+    const category = (
+      name: "PERMALINK_ONLY" | "CANONICAL_DIFFERENCE" | "CONNECTION_UNVERIFIED"
+    ) => {
+      const values = candidateInput[name];
+      if (!Array.isArray(values))
+        throw new Error(`Scheduled permalink repair preparation is missing ${name}`);
+      return values.map(parseItem);
+    };
+    const canonicalSources = await Promise.all(
+      selection.items.map(async (item) => {
+        const blog = blogConfigSchema.parse(
+          await readJsonFile(resolve(dirname(selectionPath), item.blogPath))
+        );
+        return {
+          batch: item.batch,
+          blogKey: blog.blogKey,
+          slug: item.slug,
+          postId: item.postId,
+          postEditorUrl: item.postEditorUrl,
+          blogPath: item.blogPath,
+          articlePath: item.articlePath
+        };
+      })
+    );
+    const report = new ScheduledPermalinkRepairPreparationService().prepare({
+      auditReportPath: auditPath,
+      selectionManifestPath: selectionPath,
+      items: audit.items.map(parseItem),
+      candidates: {
+        PERMALINK_ONLY: category("PERMALINK_ONLY"),
+        CANONICAL_DIFFERENCE: category("CANONICAL_DIFFERENCE"),
+        CONNECTION_UNVERIFIED: category("CONNECTION_UNVERIFIED")
+      },
+      canonicalSources
+    });
+    await mkdir(outputPath, { recursive: false });
+    const reportPath = join(outputPath, "scheduled-permalink-repair-approval-package.json");
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    logger.info(
+      { outputPath, reportPath, counts: report.counts },
+      "Scheduled permalink repair preparation result"
+    );
+    return;
+  }
+  if (args.command === "audit-publication-monitors") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const manifest = publicationMonitorBatchManifestSchema.parse(
+      await readJsonFile<unknown>(manifestPath)
+    );
+    const selectionPath = resolve(dirname(manifestPath), manifest.canonicalSelectionPath);
+    const selection = existingDraftAuditSelectionManifestSchema.parse(
+      await readJsonFile<unknown>(selectionPath)
+    );
+    const canonicalItems: PublicationMonitorCanonicalItem[] = await Promise.all(
+      selection.items.map(async (item) => ({
+        batch: item.batch,
+        slug: item.slug,
+        blog: blogConfigSchema.parse(
+          await readJsonFile(resolve(dirname(selectionPath), item.blogPath))
+        ),
+        article: articleInputSchema.parse(
+          await readJsonFile(resolve(dirname(selectionPath), item.articlePath))
+        ),
+        postId: item.postId,
+        postEditorUrl: item.postEditorUrl
+      }))
+    );
+    const sources: PublicationMonitorSource[] = await Promise.all(
+      manifest.monitors.map(async (source) => ({
+        batch: source.batch,
+        path: resolve(dirname(manifestPath), source.monitorPath),
+        monitor: publicationMonitorFileSchema.parse(
+          await readJsonFile(resolve(dirname(manifestPath), source.monitorPath))
+        )
+      }))
+    );
+    const scheduleAudits = await Promise.all(
+      manifest.monitors.map(async (source) => ({
+        batch: source.batch,
+        schedule: publicationMonitorScheduleAuditSchema.parse(
+          await readJsonFile(resolve(dirname(manifestPath), source.scheduleAuditPath))
+        )
+      }))
+    );
+    const normalizeJst = (value: string) => {
+      const normalized = value.replace(
+        /(\d{4})\/(\d{2})\/(\d{2})\s+(\d{1,2}):(\d{2})$/,
+        (_match, year, month, day, hour, minute) =>
+          `${year}-${month}-${day} ${hour.padStart(2, "0")}:${minute} JST`
+      );
+      return / JST$/.test(normalized) ? normalized : `${normalized} JST`;
+    };
+    for (const source of sources) {
+      const schedule = scheduleAudits.find((entry) => entry.batch === source.batch)?.schedule;
+      const entries = schedule?.items ?? schedule?.targets ?? [];
+      for (const item of source.monitor.items) {
+        const expected = entries.find((entry) => entry.slug === item.slug);
+        if (
+          !expected ||
+          expected.postId !== item.postId ||
+          normalizeJst(expected.scheduledAtJst) !== normalizeJst(item.scheduledAtJst)
+        ) {
+          throw new Error(`Monitor schedule evidence does not match: ${source.batch}/${item.slug}`);
+        }
+      }
+    }
+    const completeAudit = new PublishedPostCompleteAuditService(config);
+    const service = new PublicationMonitorBatchService({
+      audit: (item) => completeAudit.execute(item)
+    });
+    service.validatePreflight({ monitors: sources, canonicalItems });
+    await mkdir(outputPath, { recursive: false });
+    const retryUnverified = args.options["retry-unverified"] === "true";
+    if (args.options["retry-unverified"] && !retryUnverified)
+      throw new Error("--retry-unverified must be true");
+    const result = await service.execute({ monitors: sources, canonicalItems, retryUnverified });
+    const reportPath = join(outputPath, "publication-monitor-batch-report.json");
+    await writeFile(reportPath, `${JSON.stringify(result.report, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    for (const source of result.monitors) {
+      await writeFile(source.path, `${JSON.stringify(source.monitor, null, 2)}\n`, {
+        encoding: "utf8"
+      });
+    }
+    logger.info(
+      { outputPath, reportPath, counts: result.report.counts },
+      "Publication monitor batch audit result"
+    );
+    return;
+  }
+  if (args.command === "audit-existing-draft") {
+    const blog = blogConfigSchema.parse(await readJsonFile(requiredString(args.options, "blog")));
+    const article = articleInputSchema.parse(
+      await readJsonFile(requiredString(args.options, "article"))
+    );
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const report = await new ExistingDraftCompleteAuditService(config).execute({
+      blog,
+      article,
+      postId: requiredString(args.options, "post-id"),
+      postEditorUrl: requiredString(args.options, "editor-url")
+    });
+    await writeNewJsonFile(outputPath, report);
+    logger.info(
+      { outputPath, status: report.status, reasons: report.reasons },
+      "Existing draft audit result"
+    );
+    return;
+  }
+  if (args.command === "audit-existing-draft-batch") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const manifest = existingDraftAuditBatchManifestSchema.parse(
+      await readJsonFile<unknown>(manifestPath)
+    );
+    const items: ExistingDraftCompleteAuditBatchItemInput[] = await Promise.all(
+      manifest.items.map(async (item) => ({
+        ...item,
+        blog: blogConfigSchema.parse(
+          await readJsonFile(resolve(dirname(manifestPath), item.blogPath))
+        ),
+        article: articleInputSchema.parse(
+          await readJsonFile(resolve(dirname(manifestPath), item.articlePath))
+        )
+      }))
+    );
+    const service = new ExistingDraftCompleteAuditBatchService(config);
+    service.validatePreflight(items);
+    await mkdir(outputPath, { recursive: false });
+    const report = await service.execute({ items });
+    for (const item of report.items) {
+      const outputFile = join(
+        outputPath,
+        `${String(item.index + 1).padStart(2, "0")}-${item.slug}.json`
+      );
+      await writeFile(outputFile, `${JSON.stringify(item, null, 2)}\n`, {
+        encoding: "utf8",
+        flag: "wx"
+      });
+    }
+    const summaryPath = join(outputPath, "summary.json");
+    await writeFile(summaryPath, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    logger.info(
+      { outputPath, summaryPath, status: report.status, counts: report.counts },
+      "Existing draft batch audit result"
+    );
+    return;
+  }
+  if (args.command === "select-existing-draft-audit-targets") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const manifest = existingDraftAuditSelectionManifestSchema.parse(
+      await readJsonFile<unknown>(manifestPath)
+    );
+    const items: ExistingDraftAuditSelectionItemInput[] = await Promise.all(
+      manifest.items.map(async (item) => ({
+        ...item,
+        blog: blogConfigSchema.parse(
+          await readJsonFile(resolve(dirname(manifestPath), item.blogPath))
+        ),
+        article: articleInputSchema.parse(
+          await readJsonFile(resolve(dirname(manifestPath), item.articlePath))
+        )
+      }))
+    );
+    const selectorsByPath = new Map<string, Awaited<ReturnType<typeof loadBloggerSelectors>>>();
+    const client = {
+      listPosts: async (input: { adminUrl: string }) => {
+        const item = items.find((candidate) => candidate.blog.adminUrl === input.adminUrl);
+        if (!item) throw new Error(`No local blog configuration for ${input.adminUrl}`);
+        const selectorsPath = item.blog.blogger.selectorsPath;
+        let selectors = selectorsByPath.get(selectorsPath);
+        if (!selectors) {
+          selectors = await loadBloggerSelectors(selectorsPath);
+          selectorsByPath.set(selectorsPath, selectors);
+        }
+        return new BloggerDryRunClient(config, selectors).listPosts(input);
+      },
+      inspectExistingDraft: async (input: { adminUrl: string; postEditorUrl: string }) => {
+        const item = items.find((candidate) => candidate.blog.adminUrl === input.adminUrl);
+        if (!item) throw new Error(`No local blog configuration for ${input.adminUrl}`);
+        const selectorsPath = item.blog.blogger.selectorsPath;
+        let selectors = selectorsByPath.get(selectorsPath);
+        if (!selectors) {
+          selectors = await loadBloggerSelectors(selectorsPath);
+          selectorsByPath.set(selectorsPath, selectors);
+        }
+        return new BloggerDryRunClient(config, selectors).inspectExistingDraft(input);
+      }
+    };
+    const service = new ExistingDraftAuditSelectionService(client);
+    service.validatePreflight(items);
+    await mkdir(outputPath, { recursive: false });
+    const report = await service.execute({ items });
+    const reportPath = join(outputPath, "selection-report.json");
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    let auditManifestPath: string | undefined;
+    if (report.auditManifest) {
+      auditManifestPath = join(outputPath, "audit-existing-drafts.manifest.json");
+      await writeFile(auditManifestPath, `${JSON.stringify(report.auditManifest, null, 2)}\n`, {
+        encoding: "utf8",
+        flag: "wx"
+      });
+    }
+    logger.info(
+      { outputPath, reportPath, auditManifestPath, status: report.status, counts: report.counts },
+      "Existing draft audit target selection result"
+    );
+    return;
+  }
+  if (args.command === "prepare-existing-draft-audit-selection") {
+    const manifestPath = resolve(requiredString(args.options, "manifest"));
+    const outputPath = resolve(requiredString(args.options, "output"));
+    const manifest = existingDraftAuditSelectionPreparationManifestSchema.parse(
+      await readJsonFile<unknown>(manifestPath)
+    );
+    const evidenceIssues = new Map<string, string>();
+    await Promise.all(
+      manifest.items.map(async (item) => {
+        const evidencePaths = Object.values(item.provenance);
+        try {
+          const texts = await Promise.all(
+            evidencePaths.map((path) => readFile(resolve(dirname(manifestPath), path), "utf8"))
+          );
+          if (
+            texts.some((text) => !text.includes(item.slug) || /"status"\s*:\s*"FAIL"/.test(text))
+          ) {
+            evidenceIssues.set(
+              `${item.blogKey}\0${item.slug}`,
+              "Local generation, save, reservation, or readiness evidence is missing the canonical slug or records FAIL"
+            );
+          }
+        } catch {
+          evidenceIssues.set(
+            `${item.blogKey}\0${item.slug}`,
+            "Local generation, save, reservation, or readiness evidence file is missing or unreadable"
+          );
+        }
+      })
+    );
+    const report = new ExistingDraftAuditSelectionPreparationService().execute(
+      manifest,
+      evidenceIssues
+    );
+    await mkdir(outputPath, { recursive: false });
+    const reportPath = join(outputPath, "preparation-report.json");
+    const selectionManifestPath = join(outputPath, "selection.manifest.json");
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    const selectionManifest = {
+      ...report.selectionManifest,
+      items: report.selectionManifest.items.map((item) => ({
+        ...item,
+        blogPath: relative(outputPath, resolve(dirname(manifestPath), item.blogPath)),
+        articlePath: relative(outputPath, resolve(dirname(manifestPath), item.articlePath))
+      }))
+    };
+    await writeFile(selectionManifestPath, `${JSON.stringify(selectionManifest, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx"
+    });
+    logger.info(
+      {
+        outputPath,
+        reportPath,
+        selectionManifestPath,
+        status: report.status,
+        counts: report.counts
+      },
+      "Existing draft audit selection preparation result"
+    );
     return;
   }
   if (args.command === "prepare-article-queue") {
@@ -373,6 +1046,7 @@ export async function main(): Promise<void> {
       throw new Error("OpenAI article generation requires OPENAI_API_KEY");
     }
     const attemptPath = `${outputPath}.attempt.json`;
+    const usagePath = `${outputPath}.usage.json`;
     const outputHandle = await open(outputPath, "wx");
     let result: Awaited<ReturnType<OpenAIArticleGenerationService["execute"]>>;
     try {
@@ -384,6 +1058,12 @@ export async function main(): Promise<void> {
       });
       result = await service.execute(packageInput, confirmedMaximumCostCents);
       await outputHandle.writeFile(`${JSON.stringify(result.responses, null, 2)}\n`, "utf8");
+      await writeNewJsonFile(usagePath, {
+        schemaVersion: 1,
+        responseId: result.responseId,
+        estimate: result.estimate,
+        usage: result.usage
+      });
     } finally {
       await outputHandle.close();
     }
@@ -391,8 +1071,10 @@ export async function main(): Promise<void> {
       {
         outputPath,
         attemptPath,
+        usagePath,
         responseId: result.responseId,
-        estimate: result.estimate
+        estimate: result.estimate,
+        usage: result.usage
       },
       "OpenAI article generation completed"
     );
@@ -516,6 +1198,56 @@ export async function main(): Promise<void> {
         logger
       ).execute(manifest);
       logger.info(result, "Batch result");
+      return;
+    }
+    if (args.command === "update-existing-drafts") {
+      if (!config.ENABLE_EXISTING_DRAFT_UPDATE) {
+        throw new Error("Existing draft update requires ENABLE_EXISTING_DRAFT_UPDATE=true");
+      }
+      const manifest = prepareExistingDraftUpdateBatch(
+        await readJsonFile<unknown>(requiredString(args.options, "manifest")),
+        await readJsonFile<unknown>(requiredString(args.options, "targets"))
+      );
+      const draftService = new DraftSaveService(config, repos, logger);
+      const result = await new BatchExecutionService(
+        config,
+        {
+          dryRun: async () => {
+            throw new Error("Existing draft update does not support dry-run items");
+          },
+          saveDraft: (input) => draftService.execute(input),
+          planSchedule: async () => {
+            throw new Error("Existing draft update does not support schedule items");
+          }
+        },
+        logger
+      ).execute(manifest);
+      logger.info(result, "Existing Blogger drafts updated");
+      return;
+    }
+    if (args.command === "update-existing-draft-images") {
+      if (!config.ENABLE_EXISTING_DRAFT_UPDATE) {
+        throw new Error("Existing draft image update requires ENABLE_EXISTING_DRAFT_UPDATE=true");
+      }
+      const manifest = prepareExistingDraftUpdateBatch(
+        await readJsonFile<unknown>(requiredString(args.options, "manifest")),
+        await readJsonFile<unknown>(requiredString(args.options, "targets"))
+      );
+      const draftService = new DraftSaveService(config, repos, logger);
+      const result = await new BatchExecutionService(
+        config,
+        {
+          dryRun: async () => {
+            throw new Error("Existing draft image update does not support dry-run items");
+          },
+          saveDraft: (input) => draftService.executeImageOnly(input),
+          planSchedule: async () => {
+            throw new Error("Existing draft image update does not support schedule items");
+          }
+        },
+        logger
+      ).execute(manifest);
+      logger.info(result, "Existing Blogger draft images updated");
       return;
     }
     if (args.command === "list-campaigns") {
@@ -731,7 +1463,16 @@ Commands:
   open-login --blog <path>
   register-blog --blog <path>
   audit-drafts --blog <path> --article <path>
+  audit-existing-draft --blog <path> --article <path> --post-id <id> --editor-url <url> --output <path>
+  audit-existing-draft-batch --manifest <path> --output <new-directory>
+  select-existing-draft-audit-targets --manifest <path> --output <new-directory>
+  prepare-existing-draft-audit-selection --manifest <path> --output <new-directory>
   audit-published-post --blog <path> --article <path>
+  audit-published-post-complete --blog <path> --article <path> --post-id <id> --editor-url <url> --output <path>
+  audit-scheduled-permalinks --selection <path> --reconciliation <path> --output <new-directory>
+  reaudit-scheduled-permalink-unverified --selection <path> --previous-report <path> --output <new-directory>
+  prepare-scheduled-permalink-repair --selection <path> --audit <path> --output <new-directory>
+  audit-publication-monitors --manifest <path> --output <new-directory>
   dry-run --blog <path> --article <path>
   save-draft --blog <path> --article <path>
   prepare-generation-package --manifest <path> --output <path>
@@ -751,6 +1492,8 @@ Commands:
   generate-openai-remediations --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>
   run-batch --manifest <path>
+  update-existing-drafts --manifest <path> --targets <path>
+  update-existing-draft-images --manifest <path> --targets <path>
   run-schedule-batch --manifest <path>
   inspect-schedule-batch --batch <batchId>
   list-schedule-batches

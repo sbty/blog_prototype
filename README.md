@@ -271,7 +271,7 @@ ENABLE_DRAFT_SAVE=true
 ENABLE_SCHEDULED_POST=false
 ```
 
-`continueOnError=true` では1件の失敗後も次の記事へ進みます。`false` では残りをスキップします。STOPファイルがある場合は常に残りを停止します。
+`continueOnError=true` では1件の失敗後も次の記事へ進みます。`false` では残りをスキップします。STOPファイルがある場合は常に残りを停止します。実保存には `ENABLE_DRAFT_SAVE=true` に加え、Git管理外の `.env` で `AUTHORIZED_TEST_BLOG_ID` または `AUTHORIZED_BLOG_IDS` に対象ブログIDを明示する必要があります。許可外または未設定のブログには、Blogger操作前に保存を拒否します。既存下書きを更新する場合は、対象の `blogger.postEditorUrl` を設定し、さらに `ENABLE_EXISTING_DRAFT_UPDATE=true` を明示します。指定URLと同一タイトルの下書きが1件だけ存在すると確認できなければ更新しません。
 
 予約計画を一括作成する場合は `operation` を `plan-schedules` に変更し、各記事へオフセット付きISO 8601形式の `scheduledAt` を指定します。この操作はローカル計画だけを作成し、Bloggerへ送信しません。両方の実行フラグを `false` にしてください。
 
@@ -486,6 +486,8 @@ node dist/cli/index.js audit-published-post --blog examples/blog.example.json --
 ```
 
 このコマンドは公開フィードで記事タイトルが完全一致する投稿が1件だけであること、本文が空でないこと、同一ブログの公開URLであること、画像が1件だけであること、画像が HTTP 200 かつ空でないことを確認します。データベースやBlogger管理画面への書き込みは行いません。
+
+既存下書きの完全監査、監査対象選定、予約投稿のパーマリンク監査、公開予定記事のバッチ監視には追加の読取専用CLIがあります。入力形式、成功条件、30分の公開待機境界、修復準備と実変更の分離は [`docs/multi-blog-operations-runbook.md`](docs/multi-blog-operations-runbook.md) を参照してください。監査レポートや修復準備パッケージだけでは、Bloggerへの保存・予約・公開・削除は許可されません。
 
 ## 複数予約ジョブの一括承認・実行
 

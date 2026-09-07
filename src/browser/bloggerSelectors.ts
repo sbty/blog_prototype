@@ -12,11 +12,13 @@ const selectorSchema = z
     ),
     titleInput: selectorValue.default('input[aria-label*="Title"], input[placeholder*="Title"]'),
     htmlEditorToggle: selectorValue.optional(),
-    bodyEditable: selectorValue.default('[contenteditable="true"]'),
+    bodyEditable: selectorValue.default(
+      '[contenteditable="true"], textarea[jsname="bqeLof"], textarea.Fdco1c'
+    ),
     viewModeListbox: selectorValue.default('[jsname="o2UTnc"][role="listbox"]'),
     composeViewOption: selectorValue.default('[data-value="compose"][role="option"]'),
     insertImageButton: selectorValue.default(
-      '[jsname="oS4M0c"][role="button"], [aria-label="\u753b\u50cf\u3092\u633f\u5165"][role="button"], [aria-label*="Insert image"][role="button"]'
+      '[aria-label="\u753b\u50cf\u3092\u633f\u5165"][role="button"], [aria-label*="Insert image"][role="button"]'
     ),
     uploadFromComputerMenuItem: selectorValue.default(
       '[aria-label="\u30d1\u30bd\u30b3\u30f3\u304b\u3089\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9"][role="menuitem"], [aria-label*="Upload from computer"][role="menuitem"], [data-command="imageUploadPickerV2"], [data-command="+insertPhoto"][data-value="upload"]'
@@ -44,8 +46,12 @@ const selectorSchema = z
     permalinkButton: selectorValue.default(
       '[role="button"]:has-text("\u30d1\u30fc\u30de\u30ea\u30f3\u30af")'
     ),
-    customPermalinkOption: selectorValue.default('[jsname="kriai"][role="radio"]'),
-    permalinkInput: selectorValue.default('[jsname="hab8Qe"] input'),
+    customPermalinkOption: selectorValue.default(
+      '[role="radio"][data-value="custom"], [role="radio"][data-value="2"], [role="radio"][aria-label*="\u30ab\u30b9\u30bf\u30e0 \u30d1\u30fc\u30de\u30ea\u30f3\u30af"], [role="radio"][aria-label*="Custom permalink"]'
+    ),
+    permalinkInput: selectorValue.default(
+      'input[aria-label*="\u30ab\u30b9\u30bf\u30e0 \u30d1\u30fc\u30de\u30ea\u30f3\u30af"], input[aria-label*="Custom permalink"]'
+    ),
     scheduleButton: selectorValue.default('[role="button"]:has-text("\u516c\u958b\u65e5")'),
     scheduleSetDateTime: selectorValue.default('[jsname="gAZRp"][role="radio"]'),
     scheduleDateInput: selectorValue.default('[aria-label="\u65e5\u4ed8"]'),
@@ -59,10 +65,18 @@ const selectorSchema = z
     saveMenuItem: selectorValue.default(
       '[role="menuitem"]:has-text("\u4fdd\u5b58"), [role="menuitem"]:has-text("Save")'
     ),
+    revertToDraftMenuItem: selectorValue.default(
+      '[role="menuitem"][aria-label="\u4e0b\u66f8\u304d\u306b\u623b\u3059"], [role="menuitem"][aria-label="Revert to draft"], [role="menuitem"]:has-text("\u4e0b\u66f8\u304d\u306b\u623b\u3059"), [role="menuitem"]:has-text("Revert to draft")'
+    ),
+    revertToDraftConfirmButton: selectorValue.default(
+      '[role="dialog"] [role="button"]:has-text("\u4e0b\u66f8\u304d\u306b\u623b\u3059"), [role="dialog"] [role="button"]:has-text("Revert to draft")'
+    ),
     saveCompleteIndicator: selectorValue.default(
       '.DPvwYc.ExSgfc.XMCYre, [aria-label*="Changes saved"], [title*="Changes saved"]'
     ),
-    publishButton: selectorValue.default('div[role="button"]:has-text("Publish")'),
+    publishButton: selectorValue.default(
+      '[jsname="vdQQuc"], [aria-label="\u516c\u958b"], [aria-label*="Publish"][role="button"], div[role="button"]:has-text("Publish")'
+    ),
     publishConfirmButton: selectorValue.default(
       '[role="button"]:has-text("\u78ba\u5b9a"), [role="button"]:has-text("\u78ba\u8a8d"), [role="button"]:has-text("Confirm")'
     )
