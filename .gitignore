@@ -1,6 +1,27 @@
 node_modules/
 dist/
-data/
+data/*
+!data/SKILLS.md
 .env
 playwright-report/
 test-results/
+# Local agent validation logs
+.agent/logs/
+
+# Local generated analysis and caches
+/reports/
+__pycache__/
+*.py[cod]
+/blogger-source.zip
+
+# Target-specific or superseded local operational evidence
+/.codex/inspect-permalink-controls-readonly.mjs
+/scripts/audit-batch-drafts.mjs
+/scripts/audit-content-with-deferred-images.mjs
+/scripts/build-desk-gear-lab-02-canonical-v6.mjs
+/scripts/run-blur-preview-permalink-only-canary.mjs
+/scripts/run-keyboard-permalink-only-canary.mjs
+/scripts/run-permalink-only-canary.mjs
+/src/tests/blurPreviewPermalinkOnlyCanaryRunner.test.ts
+/src/tests/keyboardPermalinkOnlyCanaryRunner.test.ts
+/src/tests/permalinkOnlyCanaryRunner.test.ts
