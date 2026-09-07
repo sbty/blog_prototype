@@ -9,6 +9,8 @@ import {
 // This is an application-side safety estimate, not a replacement for project spend limits.
 const LUNA_SAFETY_INPUT_USD_PER_MILLION_TOKENS = 1;
 const LUNA_SAFETY_OUTPUT_USD_PER_MILLION_TOKENS = 6;
+const LUNA_USAGE_INPUT_USD_PER_MILLION_TOKENS = 0.2;
+const LUNA_USAGE_OUTPUT_USD_PER_MILLION_TOKENS = 1.2;
 
 const generatedArticlesJsonSchema = {
   type: "object",
@@ -63,6 +65,13 @@ interface OpenAIResponse {
     content?: Array<{ type?: string; text?: string; refusal?: string }>;
   }>;
   error?: { message?: string };
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    input_tokens_details?: { cached_tokens?: number };
+    output_tokens_details?: { reasoning_tokens?: number };
+  };
 }
 
 export interface OpenAIGenerationEstimate {
@@ -72,6 +81,20 @@ export interface OpenAIGenerationEstimate {
   maxOutputTokens: number;
   maximumCostCents: number;
   pricingSafetyMultiplier: 5;
+}
+
+export interface OpenAIGenerationUsage {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalTokens: number;
+  usageBasedCostUsd: number;
+  usageBasedCostCents: number;
+  pricing: {
+    inputUsdPerMillionTokens: number;
+    outputUsdPerMillionTokens: number;
+  };
 }
 
 type GenerationConfig = Pick<
@@ -88,15 +111,35 @@ type GenerationConfig = Pick<
 
 type FetchLike = typeof fetch;
 
+function promptRequest(request: ArticleGenerationPackage["requests"][number]) {
+  return {
+    requestId: request.requestId,
+    editorial: {
+      language: request.editorialProfile.language,
+      primaryTheme: request.editorialProfile.primaryTheme,
+      targetLength: request.editorialProfile.targetLength
+    },
+    brief: request.brief,
+    output: {
+      slug: request.outputContract.slug,
+      ...(request.outputContract.scheduledAt
+        ? { scheduledAt: request.outputContract.scheduledAt }
+        : {})
+    }
+  };
+}
+
 function buildPrompt(generationPackage: ArticleGenerationPackage): string {
   return [
     "Create every requested article and return only the required structured response.",
-    "Follow each editorial profile, brief, output contract, requested language, and target length.",
+    "Treat each request as an isolated article. Follow only that request's editorial profile, topic, search intent, required points, official source URLs, output contract, requested language, and target length.",
+    "Every heading and paragraph must directly advance the request's search intent or one of its required points. Do not reuse a universal checklist, generic safety section, or wording from another request.",
+    "Do not introduce terminology from unrelated domains such as product hardware, accounts, or travel unless it is explicitly required by that request's topic, search intent, required points, editorial profile, or source URLs.",
     "Do not add active HTML, scripts, forms, event handlers, or javascript URLs.",
     "Preserve requestId, slug, scheduledAt, and source URLs exactly.",
     "sourceUrlsUsed must contain every source URL from the corresponding brief exactly once.",
     "The source URLs are provenance identifiers supplied by the caller; do not claim that you opened them.",
-    JSON.stringify(generationPackage)
+    JSON.stringify({ requests: generationPackage.requests.map(promptRequest) })
   ].join("\n");
 }
 
@@ -128,6 +171,39 @@ function normalizeNullableArticleFields(value: unknown): unknown {
       if (article.imagePath === null) delete article.imagePath;
       return { ...typedItem, article };
     })
+  };
+}
+
+function optionalNonNegativeInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function usageFrom(response: OpenAIResponse): OpenAIGenerationUsage | null {
+  const inputTokens = optionalNonNegativeInteger(response.usage?.input_tokens);
+  const outputTokens = optionalNonNegativeInteger(response.usage?.output_tokens);
+  if (inputTokens === null || outputTokens === null) return null;
+  const cachedInputTokens =
+    optionalNonNegativeInteger(response.usage?.input_tokens_details?.cached_tokens) ?? 0;
+  const reasoningTokens =
+    optionalNonNegativeInteger(response.usage?.output_tokens_details?.reasoning_tokens) ?? 0;
+  const totalTokens =
+    optionalNonNegativeInteger(response.usage?.total_tokens) ?? inputTokens + outputTokens;
+  const usageBasedCostUsd =
+    (inputTokens * LUNA_USAGE_INPUT_USD_PER_MILLION_TOKENS +
+      outputTokens * LUNA_USAGE_OUTPUT_USD_PER_MILLION_TOKENS) /
+    1_000_000;
+  return {
+    inputTokens,
+    cachedInputTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+    usageBasedCostUsd,
+    usageBasedCostCents: usageBasedCostUsd * 100,
+    pricing: {
+      inputUsdPerMillionTokens: LUNA_USAGE_INPUT_USD_PER_MILLION_TOKENS,
+      outputUsdPerMillionTokens: LUNA_USAGE_OUTPUT_USD_PER_MILLION_TOKENS
+    }
   };
 }
 
@@ -255,7 +331,8 @@ export class OpenAIArticleGenerationService {
     return {
       responses,
       estimate: preflight.estimate,
-      responseId: response.id ?? null
+      responseId: response.id ?? null,
+      usage: usageFrom(response)
     };
   }
 

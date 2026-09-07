@@ -3,6 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ContentBatchAuditService } from "../services/contentBatchAuditService.js";
+import {
+  problematicFirstOperationalBatch16,
+  problematicGenericBoilerplate
+} from "./fixtures/problematicFirstOperationalBatch16.js";
 
 function png(): string {
   const dir = mkdtempSync(path.join(os.tmpdir(), "content-audit-"));
@@ -38,7 +42,12 @@ function batch(overrides: Record<string, unknown> = {}) {
         },
         provenance: {
           generationRequestId: "request-one",
-          sourceUrls: [sourceUrl]
+          sourceUrls: [sourceUrl],
+          contentBrief: {
+            topic: "USB-C device compatibility",
+            searchIntent: "Check whether two USB-C devices work together",
+            requiredPoints: ["Compare the supported specification"]
+          }
         }
       }
     ],
@@ -128,6 +137,87 @@ describe("ContentBatchAuditService", () => {
       "Confirm every",
       "Confirm &#999999999; every"
     );
+
+    await expect(new ContentBatchAuditService().execute(input)).resolves.toMatchObject({
+      status: "PASS"
+    });
+  });
+
+  it("fails all 16 saved-draft regressions that contain the generic remediation boilerplate", async () => {
+    const input = batch({
+      items: problematicFirstOperationalBatch16.map((slug) => ({
+        blogKey: "compatibility",
+        article: {
+          title: `${slug} focused guide`,
+          html: `<h2>Focused guide</h2><p><a href="https://example.com/official-source">Official source</a></p>${problematicGenericBoilerplate}`,
+          labels: ["compatibility"],
+          searchDescription: "A focused guide with an official source.",
+          slug,
+          imagePath: png()
+        },
+        provenance: {
+          generationRequestId: `request-${slug}`,
+          sourceUrls: ["https://example.com/official-source"],
+          contentBrief: {
+            topic: `${slug} focused guide`,
+            searchIntent: "Resolve the exact topic in the title",
+            requiredPoints: ["Use the official source"]
+          }
+        }
+      }))
+    });
+
+    const result = await new ContentBatchAuditService().execute(input);
+
+    expect(result).toMatchObject({
+      status: "FAIL",
+      counts: { total: 16, passed: 0, failed: 16 }
+    });
+    expect(
+      result.items.every((item) =>
+        item.issues.some(
+          (issue) => issue.code === "GENERIC_BOILERPLATE" && issue.severity === "ERROR"
+        )
+      )
+    ).toBe(true);
+  });
+
+  it("fails a paragraph headed by terminology unrelated to the article brief", async () => {
+    const input = batch();
+    input.items[0].article.html = `<h2>Flight and passport preparation</h2><p>Before travel, confirm your itinerary, flight, and passport.</p><p><a href="https://example.com/official-source">Official source</a></p>`;
+
+    const result = await new ContentBatchAuditService().execute(input);
+
+    expect(result.status).toBe("FAIL");
+    expect(result.items[0].issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "TOPIC_DRIFT", severity: "ERROR" })])
+    );
+  });
+
+  it("does not treat a software article's ownership and sign-in context as account drift", async () => {
+    const input = batch();
+    input.items[0].article.title = "Steam DRM basics";
+    input.items[0].provenance.contentBrief = {
+      topic: "Steam DRM basics",
+      searchIntent: "Explain DRM ownership checks",
+      requiredPoints: ["Explain the Steam client launch flow"]
+    };
+    input.items[0].article.html = `<h2>Steam DRM ownership checks</h2><p>Launch through Steam, sign in, and confirm the game is owned by the linked account. <a href="https://example.com/official-source">Official source</a></p>`;
+
+    await expect(new ContentBatchAuditService().execute(input)).resolves.toMatchObject({
+      status: "PASS"
+    });
+  });
+
+  it("does not treat travel terminology as drift when the brief is explicitly about travel", async () => {
+    const input = batch();
+    input.items[0].article.title = "Schengen travel dates";
+    input.items[0].provenance.contentBrief = {
+      topic: "Schengen travel date calculation",
+      searchIntent: "Check a travel itinerary against the short-stay rule",
+      requiredPoints: ["Explain the 90/180-day travel rule"]
+    };
+    input.items[0].article.html = `<h2>Travel itinerary calculation</h2><p>For travel, confirm the itinerary, flight, passport, and entry conditions. <a href="https://example.com/official-source">Official source</a></p>`;
 
     await expect(new ContentBatchAuditService().execute(input)).resolves.toMatchObject({
       status: "PASS"

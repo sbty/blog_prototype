@@ -223,14 +223,16 @@ export async function main(): Promise<void> {
     const planPath = resolve(requiredString(args.options, "plan"));
     const responsesPath = resolve(requiredString(args.options, "responses"));
     const imagesPath = resolve(requiredString(args.options, "images"));
+    const sourcesPath = resolve(requiredString(args.options, "sources"));
     const outputPath = resolve(requiredString(args.options, "output"));
-    if ([planPath, responsesPath, imagesPath].includes(outputPath)) {
+    if ([planPath, responsesPath, imagesPath, sourcesPath].includes(outputPath)) {
       throw new Error("Content batch output must not overwrite an input file");
     }
     const result = await new ContentBatchCompilerService().execute(
       await readJsonFile(planPath),
       await readJsonFile(responsesPath),
-      await readJsonFile(imagesPath)
+      await readJsonFile(imagesPath),
+      await readJsonFile(sourcesPath)
     );
     await writeNewJsonFile(outputPath, result.manifest);
     logger.info(
@@ -238,7 +240,8 @@ export async function main(): Promise<void> {
         outputPath,
         requestIds: result.requestIds,
         assignments: result.assignments,
-        images: result.images
+        images: result.images,
+        sources: result.sources
       },
       "Generated articles and validated images compiled to local batch manifest"
     );
@@ -736,7 +739,7 @@ Commands:
   compile-generated-batch --plan <path> --responses <path> --output <path>
   attach-batch-images --manifest <path> --images <path> --output <path>
   attach-batch-sources --manifest <path> --sources <path> --output <path>
-  compile-content-batch --plan <path> --responses <path> --images <path> --output <path>
+  compile-content-batch --plan <path> --responses <path> --images <path> --sources <path> --output <path>
   audit-content-batch --manifest <path> --output <path>
   prepare-content-audit-retry --manifest <path> --audit <path> --output <path>
   prepare-content-remediation-package --manifest <path> --audit <path> --output <path>

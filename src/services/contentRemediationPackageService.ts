@@ -54,6 +54,14 @@ export const contentRemediationPackageSchema = z
                 requiresSourceResearch: z.boolean()
               })
               .strict(),
+            contentBrief: z
+              .object({
+                topic: z.string().trim().min(1).max(500),
+                searchIntent: z.string().trim().min(1).max(1000),
+                requiredPoints: z.array(z.string().trim().min(1).max(1000)).min(1).max(50)
+              })
+              .strict()
+              .optional(),
             audit: z
               .object({
                 metrics: contentBatchAuditResultSchema.shape.items.element.shape.metrics,
@@ -167,6 +175,7 @@ export class ContentRemediationPackageService {
             sourceUrls,
             requiresSourceResearch: sourceUrls.length === 0
           },
+          ...(item.provenance?.contentBrief ? { contentBrief: item.provenance.contentBrief } : {}),
           audit: {
             metrics: audited.metrics,
             issues: audited.issues

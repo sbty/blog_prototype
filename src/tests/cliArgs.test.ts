@@ -84,6 +84,8 @@ describe("parseArgs", () => {
         "responses.json",
         "--images",
         "images.json",
+        "--sources",
+        "sources.json",
         "--output",
         "content-batch.json"
       ])
@@ -93,6 +95,7 @@ describe("parseArgs", () => {
         plan: "plan.json",
         responses: "responses.json",
         images: "images.json",
+        sources: "sources.json",
         output: "content-batch.json"
       }
     });

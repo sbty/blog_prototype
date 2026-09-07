@@ -173,13 +173,13 @@ npm run dev -- attach-batch-images --manifest data/generated-article-batch.json 
 
 全バッチ項目に対応する割り当てがちょうど1件ずつあること、画像が重複利用されていないこと、拡張子と実データ形式が一致すること、ファイルが空でなく10 MiB以下であることを確認してから新しいバッチを作ります。既に`imagePath`がある記事、割り当て漏れ、未知の記事、シンボリックリンク、既存出力は拒否します。このコマンドもブラウザやBloggerを開かず、画像自体の生成やアップロードは行いません。
 
-生成結果の検証、ブログ振り分け、画像割り当てを中間ファイルなしで一括実行する場合は、次の統合コマンドを使用します。
+生成結果の検証、ブログ振り分け、画像割り当て、出典リンクの付与を中間ファイルなしで一括実行する場合は、次の統合コマンドを使用します。
 
 ```bash
-npm run dev -- compile-content-batch --plan examples/article-generation-plan.example.json --responses examples/generated-article-responses.example.json --images examples/batch-images.example.json --output data/content-batch.json
+npm run dev -- compile-content-batch --plan examples/article-generation-plan.example.json --responses examples/generated-article-responses.example.json --images examples/batch-images.example.json --sources examples/batch-sources.example.json --output data/content-batch.json
 ```
 
-3つの入力全体が合格した場合だけ、出典情報と検証済み画像パスを含む既存バッチ形式を新規作成します。記事生成、画像生成、Blogger保存は別工程であり、このコマンドから外部通信は発生しません。
+4つの入力全体が合格した場合だけ、各記事の出典リンク、検証済み画像パス、生成時の出典証跡を含む既存バッチ形式を新規作成します。記事生成、画像生成、Blogger保存は別工程であり、このコマンドから外部通信は発生しません。
 
 ### コンテンツバッチ監査
 
@@ -420,6 +420,8 @@ Phase 6では、完成記事の複数ブログ振り分け、プロバイダー�
 Phase 7では、監査に失敗した `save-drafts` バッチの記事だけを修正依頼パッケージへ抽出し、検証済みの修正結果を失敗記事だけの再試行バッチへ戻すローカル境界を実装済みです。Blogger管理情報やローカル運用情報を修正依頼から除外し、取込時には記事・編集方針・出典の改変を検出します。
 
 修正依頼の作成・取込・再監査はいずれもBloggerやAI APIを呼び出しません。AI APIへの実通信、Blogger下書き保存、予約、公開はそれぞれ既存の明示的な別経路と安全確認が必要です。
+
+現在の完了条件、コンテンツbrief保持、定型文・話題逸脱検出、長さだけの修正における既存内容保持、および総予算境界は [`docs/phase7-completion-checklist.md`](docs/phase7-completion-checklist.md) に記録しています。
 
 ## Google ログインで「ログインできませんでした」が出る場合
 

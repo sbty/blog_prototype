@@ -31,7 +31,15 @@ export const articleProvenanceSchema = z
         })
       )
       .min(1)
-      .max(30)
+      .max(30),
+    contentBrief: z
+      .object({
+        topic: z.string().trim().min(1).max(500),
+        searchIntent: z.string().trim().min(1).max(1000),
+        requiredPoints: z.array(z.string().trim().min(1).max(1000)).min(1).max(50)
+      })
+      .strict()
+      .optional()
   })
   .strict();
 

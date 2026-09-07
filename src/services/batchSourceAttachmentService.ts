@@ -43,6 +43,16 @@ function appendSourceSection(
   return `${html.slice(0, articleEnd.index)}${section}${html.slice(articleEnd.index)}`;
 }
 
+function sameSourceUrls(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  const normalizedLeft = new Set(left.map((url) => new URL(url).href));
+  const normalizedRight = new Set(right.map((url) => new URL(url).href));
+  return (
+    normalizedLeft.size === normalizedRight.size &&
+    [...normalizedLeft].every((url) => normalizedRight.has(url))
+  );
+}
+
 export class BatchSourceAttachmentService {
   execute(batchInput: unknown, assignmentsInput: unknown): BatchSourceAttachmentResult {
     const batch = batchManifestSchema.parse(batchInput);
@@ -76,17 +86,18 @@ export class BatchSourceAttachmentService {
       );
     }
 
-    const withProvenance = batch.items.filter((item) => item.provenance);
-    if (withProvenance.length > 0) {
-      throw new Error(
-        `Batch items already contain provenance: ${withProvenance
-          .map((item) => `${item.blogKey}/${item.article.slug}`)
-          .join(", ")}`
-      );
-    }
-
     const items = batch.items.map((item) => {
       const assignment = assignmentsByKey.get(itemKey(item.blogKey, item.article.slug))!;
+      const sourceUrls = assignment.sources.map((source) => new URL(source.url).href);
+      if (
+        item.provenance &&
+        (item.provenance.generationRequestId !== assignment.generationRequestId ||
+          !sameSourceUrls(item.provenance.sourceUrls, sourceUrls))
+      ) {
+        throw new Error(
+          `Source assignment does not match existing provenance: ${item.blogKey}/${item.article.slug}`
+        );
+      }
       return {
         ...item,
         article: {
@@ -97,9 +108,9 @@ export class BatchSourceAttachmentService {
             assignment.sources
           )
         },
-        provenance: {
+        provenance: item.provenance ?? {
           generationRequestId: assignment.generationRequestId,
-          sourceUrls: assignment.sources.map((source) => new URL(source.url).href)
+          sourceUrls
         }
       };
     });

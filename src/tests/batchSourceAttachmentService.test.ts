@@ -90,17 +90,34 @@ describe("BatchSourceAttachmentService", () => {
     );
   });
 
-  it("refuses to overwrite existing provenance", () => {
+  it("adds citations when generated provenance exactly matches the source assignment", () => {
     const input = batch();
     Object.assign(input.items[0], {
       provenance: {
-        generationRequestId: "existing",
+        generationRequestId: "legacy-draft-usb-c",
+        sourceUrls: ["https://www.usb.org/usb-charger-pd"]
+      }
+    });
+
+    const result = new BatchSourceAttachmentService().execute(input, assignments());
+    expect(result.manifest.items[0].article.html).toContain("official-sources");
+    expect(result.manifest.items[0].provenance).toEqual({
+      generationRequestId: "legacy-draft-usb-c",
+      sourceUrls: ["https://www.usb.org/usb-charger-pd"]
+    });
+  });
+
+  it("refuses a source assignment that changes generated provenance", () => {
+    const input = batch();
+    Object.assign(input.items[0], {
+      provenance: {
+        generationRequestId: "generated-usb-c",
         sourceUrls: ["https://example.com/source"]
       }
     });
 
     expect(() => new BatchSourceAttachmentService().execute(input, assignments())).toThrow(
-      "Batch items already contain provenance"
+      "Source assignment does not match existing provenance"
     );
   });
 

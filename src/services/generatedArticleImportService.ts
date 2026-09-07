@@ -47,7 +47,12 @@ export class GeneratedArticleImportService {
         routing: { blogKey: request.blogKey, topics: request.routingTopics },
         provenance: {
           generationRequestId: request.requestId,
-          sourceUrls: response.sourceUrlsUsed
+          sourceUrls: response.sourceUrlsUsed,
+          contentBrief: {
+            topic: request.topic,
+            searchIntent: request.searchIntent,
+            requiredPoints: request.requiredPoints
+          }
         }
       };
     });

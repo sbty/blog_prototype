@@ -35,7 +35,7 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     requiresDatabase: false
   },
   "compile-content-batch": {
-    options: ["plan", "responses", "images", "output"],
+    options: ["plan", "responses", "images", "sources", "output"],
     requiresDatabase: false
   },
   "audit-content-batch": {
