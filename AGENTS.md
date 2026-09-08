@@ -36,6 +36,17 @@ Context budget:
 - If a command may produce large output, redirect it to a file and inspect only the relevant portion.
 - Do not combine multiple large file reads into one command.
 
+Token usage measurement:
+- Assign each meaningful work block exactly one primary category:
+  discovery, implementation, validation, documentation, git_operations,
+  blogger_read, or blogger_mutation.
+- Derive usage from existing Codex logs; do not create extra model turns solely
+  for measurement.
+- Aggregate results when a work block finishes or when the user requests them.
+- Do not paste or reread raw usage logs into the conversation.
+- Tool-based categories may overlap and must not be summed as total usage.
+- Measurement failure must not block the primary task.
+
 Search:
 - Always narrow `rg` / `git grep` by path and pattern before increasing context.
 - Avoid broad `rg -C` searches across large directories.
@@ -56,6 +67,16 @@ Git inspection:
   - `git diff --name-only`
 - Do not run an unrestricted `git diff` when the worktree is broad.
 - Inspect only goal-relevant diffs with `git diff -- <path>`.
+
+Git commits:
+- Automatically create a local commit when a coherent, reviewable work unit is
+  complete and its relevant validation passes; do not wait for a separate commit
+  instruction.
+- Prefer one commit per functional, documentation, or process unit. Avoid
+  per-file, per-command, and broad catch-all commits.
+- Stage only files or hunks in the current scope and preserve unrelated changes.
+- Do not push, merge, tag, or open a pull request without explicit user
+  instruction.
 
 Validation:
 - During implementation, run the smallest relevant test/check first.

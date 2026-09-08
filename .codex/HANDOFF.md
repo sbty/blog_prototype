@@ -1,44 +1,32 @@
 # Codex Handoff
 
 Updated: 2026-09-08 JST
-Status: complete — accumulated worktree changes partitioned into reviewed commits
-Branch: codex/partition-existing-work
+Status: complete — agent measurement and local-commit policies added
+Branch: main
+Commit: 71d5b86 feat: integrate Blogger automation safety and audit workflows (#85)
 
-## Completed partition
+## Completed
 
-- `dc3e3ec chore: add agent process tooling`
-- `9d19f3e feat: close phase 7 content pipeline`
-- `cb2b8c6 feat: harden Blogger persistence and audits`
-- `45d5309 chore: add isolated generation utilities`
-- `301bae4 chore: add token usage analysis tooling`
-- `e084fac chore: ignore local home mirror`
-- This handoff is committed separately as the final documentation unit.
+- Reviewed the highest-risk draft-save, existing-draft update, persistence-audit,
+  scheduling-separation, and CLI boundaries; no merge-blocking issue was found.
+- Repository validation passed: tests, lint, and typecheck.
+- PR #85 CI and CodeQL checks passed.
+- Repository branch protection rejected merge commits, so PR #85 was squash-merged
+  using the repository's established merge style.
+- Local `main` was fast-forwarded to `origin/main` at `71d5b86`.
+- Added a low-overhead token-usage measurement policy to root `AGENTS.md` with
+  one primary work category per block and no measurement-only model turns.
+- Added standing authorization for automatic local commits at coherent,
+  validated work-unit boundaries; push, merge, tag, and PR actions still require
+  explicit user instruction.
 
-The shared Blogger implementation and CLI hunks were kept together because splitting
-them would create non-buildable intermediate commits. Operational files under
-`data/` remain local and ignored. The repository-local `~/` directory was preserved
-and added to `.gitignore`; no user data was deleted.
+## Safety boundaries
 
-## Verification
+- No Blogger publish, schedule, save, repair, or deletion operation ran.
+- No live Blogger data was changed.
 
-- Process wrapper success/failure propagation test — PASS.
-- Phase 7 formatting and build — PASS.
-- Phase 7 focused tests — 8 files / 47 tests PASS.
-- Final repository validation — tests, lint, and typecheck PASS.
-- Staged product change scan found no current operational blog ID, post ID, public
-  URL, API key, or private-key material.
-- PR #85 CI exposed two Linux-only portability issues: exclusive `fs.cp` was
-  given the directory already created by `mkdtemp`, and a committed test read an
-  ignored local recovery script under `data/`.
-- The session-copy path now removes only its newly-created empty placeholder
-  before exclusive copy. The test no longer depends on ignored operational data.
-- CI-fix focused tests — 2 files / 5 tests PASS. Full tests, lint, and typecheck
-  also PASS after the fix.
+## Next action
 
-## Boundaries and next action
-
-- No publish, schedule, delete, repair, or additional Blogger save ran during
-  partitioning.
-- Nothing was pushed and no pull request was created.
-- Review the commits on `codex/partition-existing-work`; then push or open a PR
-  only when explicitly requested.
+- Choose a new scoped goal. The safest operational continuation is a read-only
+  Blogger audit; any draft save or scheduled-post mutation requires separate,
+  explicit approval and the existing authorization guards.
