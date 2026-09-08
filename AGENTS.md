@@ -36,6 +36,25 @@ Context budget:
 - If a command may produce large output, redirect it to a file and inspect only the relevant portion.
 - Do not combine multiple large file reads into one command.
 
+Execution round-trip budget:
+- Treat every model/tool-result boundary as the primary token cost. Batch
+  independent reads, checks, and safe commands into one tool invocation.
+- A routine Markdown or instruction-only change should use at most five model
+  responses: one baseline, one edit, one validation/commit operation, and one
+  final report, with one spare response for a genuine failure.
+- A normal read-only audit should use at most six model responses. Exceed these
+  budgets only for new failure evidence, required user input, or a safety stop;
+  never exceed them for repeated confidence checks.
+- Do not use the model as a polling loop. When the tool interface supports it,
+  one orchestration call must own the long-running process, wait or poll it
+  internally, and return only meaningful progress or the final compact result.
+- If control returns with a live process, use one bounded wait with the largest
+  safe interval. Poll again only after meaningful progress or a changed state;
+  unchanged polls must not be narrated or reanalyzed by the model.
+- Before starting a multi-item audit, require one command that performs the
+  iteration internally and emits one compact aggregate report. Stop if the
+  workflow instead requires a model decision for each item.
+
 Token usage measurement:
 - Assign each meaningful work block exactly one primary category:
   discovery, implementation, validation, documentation, git_operations,
@@ -46,6 +65,9 @@ Token usage measurement:
 - Do not paste or reread raw usage logs into the conversation.
 - Tool-based categories may overlap and must not be summed as total usage.
 - Measurement failure must not block the primary task.
+- For task-local usage analysis, parse the existing JSONL logs in one local
+  aggregation pass. Do not search product documentation unless the user asks
+  about product semantics, billing, or limit behavior.
 
 Search:
 - Always narrow `rg` / `git grep` by path and pattern before increasing context.
@@ -76,6 +98,10 @@ Git commits and pushes:
   instruction.
 - After committing, automatically push the current branch to its configured
   upstream. If it has no upstream, use a normal `git push -u origin <branch>`.
+- Before an automatic push, inspect the staged scope for credentials, local
+  paths, usage logs, or internal operational state. A commit containing such
+  material, including a detailed `.codex/HANDOFF.md`, stays local until the user
+  explicitly approves exporting it to the configured remote.
 - Prefer one commit per functional, documentation, or process unit. Avoid
   per-file, per-command, and broad catch-all commits.
 - Stage only files or hunks in the current scope and preserve unrelated changes.
@@ -87,8 +113,11 @@ Git commits and pushes:
 
 Validation:
 - During implementation, run the smallest relevant test/check first.
-- Before completing or handing off a goal, run:
+- For code or operational-script changes, before completing or handing off run:
   - `powershell -ExecutionPolicy Bypass -File scripts/verify-agent.ps1`
+- For changes limited to Markdown, `AGENTS.md`, or `.codex/HANDOFF.md`, run
+  `git diff --check`; do not run application tests unless executable examples,
+  generated artifacts, or code behavior changed.
 - Do not run `npm test`, `npm run lint`, and `npm run typecheck`
   separately when `verify-agent.ps1` already covers them.
 - Successful validation output must remain minimal.
@@ -97,5 +126,9 @@ Validation:
 - Do not read an entire validation log unless targeted inspection is insufficient.
 
 Handoff:
-- When pausing or completing a goal, update `.codex/HANDOFF.md`.
+- Update `.codex/HANDOFF.md` only when another session needs non-obvious state:
+  unfinished work, an operational blocker, a user-requested handoff, or a
+  completed work unit whose next action is not evident from the repository.
+- Do not update HANDOFF for a standalone explanation, status check, or trivial
+  documentation edit unless the user explicitly asks.
 - Keep HANDOFF.md concise and replace stale state instead of appending history.

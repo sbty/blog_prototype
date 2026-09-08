@@ -1,15 +1,31 @@
 # Codex Handoff
 
 Updated: 2026-09-08 JST
-Status: follow-up required — reduce excessive agent token usage
+Status: execution guardrails fixed locally; audit runner redesign remains
 Branch: codex/agent-workflow-and-audit
-Base commit: dd697ed fix: route automatic pushes through task branches
+Local history includes: d00f570 docs: hand off token efficiency redesign
 
 ## Priority for the next session
 
-Fix the agent orchestration that made read-only auditing and small policy-file
-edits consume millions of tokens. Treat this as the next work unit before
-expanding the Blogger audit.
+Implement the process-driven read-only audit runner before expanding the
+Blogger audit. Root execution rules now prevent the model-driven polling and
+over-validation patterns that caused the excessive token usage.
+
+## Root-cause fix completed locally
+
+- Root `AGENTS.md` now sets response budgets: five for routine Markdown changes
+  and six for normal read-only audits, with exceptions only for new failures,
+  required input, or safety stops.
+- Long-running processes must be owned and polled inside one orchestration call
+  when supported; unchanged polls cannot be returned to the model for analysis.
+- Multi-item audits require one deterministic command that iterates internally
+  and emits one compact aggregate report.
+- Markdown-only changes use `git diff --check` instead of the full application
+  test suite.
+- Automatic push stops before exporting detailed HANDOFF contents, local paths,
+  usage logs, or internal operational state without explicit approval.
+- HANDOFF updates are no longer mandatory for explanations, status checks, or
+  trivial documentation changes.
 
 ## Measured failures
 
@@ -26,25 +42,16 @@ expanding the Blogger audit.
   repeatedly resending a large context across many model/tool round trips, not
   visible response size or file size.
 
-## Required redesign
+## Remaining audit-runner redesign
 
 1. Make read-only audit execution deterministic and process-driven. Start one
    explicit command, let the process iterate internally, and return one compact
    aggregate JSON report. Do not make the model control each candidate or poll
    repeatedly.
-2. Separate audit execution from report interpretation, HANDOFF updates,
-   validation, and Git operations. Assign each work block one primary category.
-3. Batch independent reads and Git checks. For a small Markdown change, target
-   one baseline read, one patch, one required validation run, one commit/push
-   operation, and one final report.
-4. Use at most one bounded wait for a normal long-running command. Additional
-   polling requires concrete evidence that the process made meaningful progress
-   or needs input.
-5. Use lower reasoning effort for routine inspection, Markdown edits, and Git
-   bookkeeping when the task/session controls permit it.
-6. Measure from existing JSONL usage records with one local aggregation pass.
-   Do not create extra model turns, Web searches, or repeated log reads solely
-   to measure usage.
+2. Separate audit execution from report interpretation and Git operations.
+3. Use lower reasoning effort for routine audit inspection when task/session
+   controls permit it.
+4. Add focused tests for the deterministic runner and compact report boundary.
 
 ## Acceptance criteria
 
