@@ -37,6 +37,40 @@ export interface ExistingDraftCompleteAuditBatchReport {
   items: ExistingDraftCompleteAuditBatchItemResult[];
 }
 
+export interface ExistingDraftCompleteAuditBatchSummaryItem
+  extends Omit<ExistingDraftCompleteAuditBatchItemResult, "postEditorUrl" | "report"> {
+  detailFile: string;
+}
+
+export interface ExistingDraftCompleteAuditBatchSummary
+  extends Omit<ExistingDraftCompleteAuditBatchReport, "items"> {
+  items: ExistingDraftCompleteAuditBatchSummaryItem[];
+}
+
+export function summarizeExistingDraftCompleteAuditBatch(
+  report: ExistingDraftCompleteAuditBatchReport,
+  detailFile: (item: Pick<ExistingDraftCompleteAuditBatchItemResult, "index" | "slug">) => string
+): ExistingDraftCompleteAuditBatchSummary {
+  return {
+    schemaVersion: report.schemaVersion,
+    auditType: report.auditType,
+    status: report.status,
+    startedAt: report.startedAt,
+    completedAt: report.completedAt,
+    counts: report.counts,
+    items: report.items.map((item) => ({
+      index: item.index,
+      slug: item.slug,
+      blogKey: item.blogKey,
+      postId: item.postId,
+      status: item.status,
+      auditedAt: item.auditedAt,
+      reasons: item.reasons,
+      detailFile: detailFile(item)
+    }))
+  };
+}
+
 type AuditFactory = () => Pick<ExistingDraftCompleteAuditService, "execute">;
 
 export class ExistingDraftCompleteAuditBatchService {

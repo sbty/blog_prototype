@@ -26,6 +26,7 @@ import { DraftSaveService } from "../services/draftSaveService.js";
 import { ExistingDraftCompleteAuditService } from "../services/existingDraftCompleteAuditService.js";
 import {
   ExistingDraftCompleteAuditBatchService,
+  summarizeExistingDraftCompleteAuditBatch,
   type ExistingDraftCompleteAuditBatchItemInput
 } from "../services/existingDraftCompleteAuditBatchService.js";
 import {
@@ -637,23 +638,23 @@ export async function main(): Promise<void> {
     service.validatePreflight(items);
     await mkdir(outputPath, { recursive: false });
     const report = await service.execute({ items });
+    const detailFile = (item: { index: number; slug: string }) =>
+      `${String(item.index + 1).padStart(2, "0")}-${item.slug}.json`;
     for (const item of report.items) {
-      const outputFile = join(
-        outputPath,
-        `${String(item.index + 1).padStart(2, "0")}-${item.slug}.json`
-      );
+      const outputFile = join(outputPath, detailFile(item));
       await writeFile(outputFile, `${JSON.stringify(item, null, 2)}\n`, {
         encoding: "utf8",
         flag: "wx"
       });
     }
+    const summary = summarizeExistingDraftCompleteAuditBatch(report, detailFile);
     const summaryPath = join(outputPath, "summary.json");
-    await writeFile(summaryPath, `${JSON.stringify(report, null, 2)}\n`, {
+    await writeFile(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, {
       encoding: "utf8",
       flag: "wx"
     });
     logger.info(
-      { outputPath, summaryPath, status: report.status, counts: report.counts },
+      { outputPath, summaryPath, status: summary.status, counts: summary.counts },
       "Existing draft batch audit result"
     );
     return;
