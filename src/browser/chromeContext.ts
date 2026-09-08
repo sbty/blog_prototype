@@ -48,6 +48,9 @@ export async function launchChromePersistentContext(
     path.join(config.DATA_DIR, "chrome-profile-playwright-session-")
   );
   try {
+    // fs.cp requires a non-existent destination when errorOnExist is enabled.
+    // mkdtemp gives us an exclusive path, so remove that empty placeholder first.
+    await rm(sessionPath, { recursive: true });
     await cp(recoveryPath, sessionPath, { recursive: true, force: false, errorOnExist: true });
     await removeSessionLocks(sessionPath);
     const context = await launcher.launchPersistentContext(sessionPath, launchOptions(config));

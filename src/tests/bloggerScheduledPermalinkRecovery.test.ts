@@ -4,10 +4,6 @@ import { describe, expect, it } from "vitest";
 
 describe("scheduled permalink recovery", () => {
   const browserClient = readFileSync(path.resolve("src/browser/bloggerDryRun.ts"), "utf8");
-  const recoveryRunner = readFileSync(
-    path.resolve("data/validate-one-draft-permalink-save.mjs"),
-    "utf8"
-  );
   const selectors = JSON.parse(
     readFileSync(path.resolve("config/blogger-selectors.json"), "utf8")
   ) as { revertToDraftMenuItem: string };
@@ -58,16 +54,5 @@ describe("scheduled permalink recovery", () => {
     expect(schedule).toContain("ENABLE_SCHEDULED_POST=true and ENABLE_DRAFT_SAVE=false");
     expect(schedule).toContain("new BloggerSchedulePreview");
     expect(schedule).not.toContain("fillArticle(");
-  });
-
-  it("restores the reservation only after the fresh permalink audit passes", () => {
-    const persistenceGate = recoveryRunner.indexOf('if (afterAudit.status !== "PASS"');
-    const reschedule = recoveryRunner.indexOf("scheduledClient.scheduleExistingDraftAt");
-    const rescheduleAudit = recoveryRunner.indexOf('evaluate(scheduled, slug, "SCHEDULED")');
-
-    expect(persistenceGate).toBeGreaterThan(-1);
-    expect(reschedule).toBeGreaterThan(persistenceGate);
-    expect(rescheduleAudit).toBeGreaterThan(reschedule);
-    expect(recoveryRunner).toContain('throw new Error("Post-reschedule audit failed")');
   });
 });

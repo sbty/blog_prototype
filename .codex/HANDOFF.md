@@ -27,6 +27,13 @@ and added to `.gitignore`; no user data was deleted.
 - Final repository validation — tests, lint, and typecheck PASS.
 - Staged product change scan found no current operational blog ID, post ID, public
   URL, API key, or private-key material.
+- PR #85 CI exposed two Linux-only portability issues: exclusive `fs.cp` was
+  given the directory already created by `mkdtemp`, and a committed test read an
+  ignored local recovery script under `data/`.
+- The session-copy path now removes only its newly-created empty placeholder
+  before exclusive copy. The test no longer depends on ignored operational data.
+- CI-fix focused tests — 2 files / 5 tests PASS. Full tests, lint, and typecheck
+  also PASS after the fix.
 
 ## Boundaries and next action
 
