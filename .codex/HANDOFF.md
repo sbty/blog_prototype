@@ -2,13 +2,14 @@
 
 Updated: 2026-09-08 JST
 Status: complete — automatic commit-and-push policy added
-Branch: main
-Commit: 9fea60a docs: record read-only draft selection
+Branch: codex/agent-workflow-and-audit
+Commit: b43b1f3 chore: automate validated pushes
 
 ## Completed
 
 - Updated root `AGENTS.md` to automatically push each coherent, validated work
-  unit after its local commit. Normal upstream setup is allowed; force-push,
+  unit after its local commit. Protected default branches use a task-scoped
+  `codex/` branch. Normal upstream setup is allowed; force-push,
   branch-protection bypass, merge, tag, and PR creation remain excluded.
 - Ran `select-existing-draft-audit-targets` with the latest valid 64-item local
   preparation manifest and a new no-overwrite v14 output directory.

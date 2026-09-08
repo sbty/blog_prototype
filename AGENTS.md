@@ -69,6 +69,8 @@ Git inspection:
 - Inspect only goal-relevant diffs with `git diff -- <path>`.
 
 Git commits and pushes:
+- Before the first commit for a work unit, create or switch to a task-scoped
+  `codex/` branch when the current branch is protected or requires pull requests.
 - Automatically create a local commit when a coherent, reviewable work unit is
   complete and its relevant validation passes; do not wait for a separate commit
   instruction.
@@ -77,8 +79,10 @@ Git commits and pushes:
 - Prefer one commit per functional, documentation, or process unit. Avoid
   per-file, per-command, and broad catch-all commits.
 - Stage only files or hunks in the current scope and preserve unrelated changes.
-- Never force-push or bypass branch protection. Stop and report a rejected or
-  non-fast-forward push rather than rewriting remote history.
+- Never force-push or bypass branch protection. If a push is rejected only
+  because the branch requires pull requests, create or switch to a task-scoped
+  `codex/` branch at the current HEAD and retry one normal push. Stop and report
+  any other rejection or non-fast-forward result rather than rewriting history.
 - Do not merge, tag, or open a pull request without explicit user instruction.
 
 Validation:
