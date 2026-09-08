@@ -34,10 +34,12 @@ describe("Chrome persistent-context recovery", () => {
     const launcher = {
       launchPersistentContext: vi.fn().mockResolvedValueOnce(context)
     };
+    const recoveryPath = getChromeRecoveryProfilePath(config);
+    await mkdir(path.join(recoveryPath, "Default"), { recursive: true });
+    await writeFile(path.join(recoveryPath, "Default", "Preferences"), "stale-profile", "utf8");
 
     await expect(launchChromePersistentContext(config, launcher)).resolves.toBe(context);
 
-    const recoveryPath = getChromeRecoveryProfilePath(config);
     const [sessionPath] = launcher.launchPersistentContext.mock.calls.map(([profile]) => profile);
     expect(sessionPath).toMatch(
       new RegExp(`${root.replaceAll("\\", "\\\\")}.*chrome-profile-playwright-session-`)

@@ -1,5 +1,4 @@
-import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { cp, mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { chromium, type BrowserContext } from "@playwright/test";
 import type { AppConfig } from "../config/env.js";
@@ -22,10 +21,21 @@ function launchOptions(config: AppConfig) {
   };
 }
 
-async function ensureRecoveryProfile(sourcePath: string, recoveryPath: string): Promise<void> {
-  if (existsSync(recoveryPath)) return;
-  await mkdir(path.dirname(recoveryPath), { recursive: true });
-  await cp(sourcePath, recoveryPath, { recursive: true, force: false, errorOnExist: true });
+async function refreshRecoveryProfile(sourcePath: string, recoveryPath: string): Promise<void> {
+  const parentPath = path.dirname(recoveryPath);
+  await mkdir(parentPath, { recursive: true });
+  const stagingPath = await mkdtemp(
+    path.join(parentPath, `${path.basename(recoveryPath)}-refresh-`)
+  );
+  await rm(stagingPath, { recursive: true });
+  try {
+    await cp(sourcePath, stagingPath, { recursive: true, force: false, errorOnExist: true });
+    await rm(recoveryPath, { recursive: true, force: true });
+    await rename(stagingPath, recoveryPath);
+  } catch (error) {
+    await rm(stagingPath, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 async function removeSessionLocks(sessionPath: string): Promise<void> {
@@ -43,7 +53,7 @@ export async function launchChromePersistentContext(
   const profilePath = getChromeProfilePath(config);
   await mkdir(profilePath, { recursive: true });
   const recoveryPath = getChromeRecoveryProfilePath(config);
-  await ensureRecoveryProfile(profilePath, recoveryPath);
+  await refreshRecoveryProfile(profilePath, recoveryPath);
   const sessionPath = await mkdtemp(
     path.join(config.DATA_DIR, "chrome-profile-playwright-session-")
   );
