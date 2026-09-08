@@ -20,6 +20,16 @@ describe("Blogger image upload recovery", () => {
     expect(selectors.uploadFromComputerMenuItem).toContain("パソコンからアップロード");
   });
 
+  it("ignores hidden duplicate Compose options and verifies the visible editor switched", () => {
+    const methodStart = uploader.indexOf("private async ensureComposeView");
+    const method = uploader.slice(methodStart, uploader.indexOf("private async waitForFileInput"));
+
+    expect(method).toContain("this.firstVisible(");
+    expect(method).toContain("selectedComposeSelector");
+    expect(method).not.toContain("selectedCompose.count()");
+    expect(method).toContain("Blogger editor did not switch to Compose view");
+  });
+
   it("uses the visible More options > Save route after image insertion without touching body text", () => {
     const methodStart = browserClient.indexOf("async updateExistingDraftImage");
     const method = browserClient.slice(

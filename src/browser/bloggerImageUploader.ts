@@ -116,10 +116,13 @@ export class BloggerImageUploader {
     page: Page,
     assertCanMutate?: () => Promise<void>
   ): Promise<void> {
-    const selectedCompose = page.locator(
-      `${this.selectors.composeViewOption}[aria-selected="true"]`
+    const selectedComposeSelector =
+      `${this.selectors.composeViewOption}[aria-selected="true"]`;
+    const selectedCompose = await this.firstVisible(
+      page.locator(selectedComposeSelector),
+      250
     );
-    if ((await selectedCompose.count()) > 0) return;
+    if (selectedCompose) return;
 
     const listbox = await this.firstVisible(page.locator(this.selectors.viewModeListbox), 5000);
     if (!listbox) {
@@ -127,9 +130,18 @@ export class BloggerImageUploader {
       throw new Error("Blogger editor view selector was not detected");
     }
     await performImageMutationWithGuard(assertCanMutate, () => listbox.click());
-    const compose = page.locator(this.selectors.composeViewOption).last();
-    await performImageMutationWithGuard(assertCanMutate, () => compose.click({ force: true }));
+    const compose = await this.firstVisible(
+      page.locator(this.selectors.composeViewOption),
+      5000
+    );
+    if (!compose) throw new Error("Blogger Compose view option was not detected");
+    await performImageMutationWithGuard(assertCanMutate, () => compose.click());
     await page.waitForTimeout(500);
+    const activeCompose = await this.firstVisible(
+      page.locator(selectedComposeSelector),
+      5000
+    );
+    if (!activeCompose) throw new Error("Blogger editor did not switch to Compose view");
   }
   private async waitForFileInput(page: Page, timeout: number): Promise<Locator | null> {
     const deadline = Date.now() + timeout;
