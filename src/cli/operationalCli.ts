@@ -48,6 +48,7 @@ import { ContentRemediationPackageService } from "../services/contentRemediation
 import { ContentRemediationImportService } from "../services/contentRemediationImportService.js";
 import { DraftSourceUpdateService } from "../services/draftSourceUpdateService.js";
 import { OpenAIArticleGenerationService } from "../services/openAIArticleGenerationService.js";
+import { VerifiedDraftPipelineService } from "../services/verifiedDraftPipelineService.js";
 import { OpenAIContentRemediationService } from "../services/openAIContentRemediationService.js";
 import { ScheduleBatchExecutionService } from "../services/scheduleBatchExecutionService.js";
 import { ScheduleBatchInspectionService } from "../services/scheduleBatchInspectionService.js";
@@ -1201,6 +1202,66 @@ export async function main(): Promise<void> {
       logger.info(result, "Batch result");
       return;
     }
+    if (args.command === "run-verified-draft-pipeline") {
+      const planPath = resolve(requiredString(args.options, "plan"));
+      const imagesPath = resolve(requiredString(args.options, "images"));
+      const sourcesPath = resolve(requiredString(args.options, "sources"));
+      const outputPath = resolve(requiredString(args.options, "output"));
+      const confirmationText = requiredString(args.options, "confirm-max-cost-cents");
+      if (!/^[1-9]\d*$/.test(confirmationText)) {
+        throw new Error("OpenAI cost confirmation must be a positive integer number of cents");
+      }
+      if ([planPath, imagesPath, sourcesPath].includes(outputPath)) {
+        throw new Error("Verified draft pipeline output must not overwrite an input path");
+      }
+      const [plan, images, sources] = await Promise.all([
+        readJsonFile<unknown>(planPath),
+        readJsonFile<unknown>(imagesPath),
+        readJsonFile<unknown>(sourcesPath)
+      ]);
+      await mkdir(outputPath);
+      const draftService = new DraftSaveService(config, repos, logger);
+      const batchExecutor = new BatchExecutionService(
+        config,
+        {
+          dryRun: async () => {
+            throw new Error("Verified draft pipeline cannot execute a dry-run item");
+          },
+          saveDraft: (input) => draftService.execute(input),
+          planSchedule: async () => {
+            throw new Error("Verified draft pipeline cannot execute a schedule item");
+          }
+        },
+        logger
+      );
+      const summary = await new VerifiedDraftPipelineService(config, {
+        batchExecutor,
+        artifactWriter: {
+          write: (name, value) => writeNewJsonFile(join(outputPath, `${name}.json`), value)
+        }
+      }).execute({
+        plan,
+        images,
+        sources,
+        confirmedMaximumCostCents: Number(confirmationText),
+        confirmedDraftSaveRequestId: requiredString(args.options, "confirm-draft-save")
+      });
+      logger.info(
+        {
+          status: summary.status,
+          requestId: summary.requestId,
+          blogKey: summary.blogKey,
+          outputPath,
+          reportPath: summary.execution.reportPath,
+          counts: summary.execution.counts
+        },
+        "Verified single-draft pipeline completed"
+      );
+      if (summary.status !== "PASS") {
+        throw new Error(`Verified draft pipeline failed; inspect ${summary.execution.reportPath}`);
+      }
+      return;
+    }
     if (args.command === "update-existing-drafts") {
       if (!config.ENABLE_EXISTING_DRAFT_UPDATE) {
         throw new Error("Existing draft update requires ENABLE_EXISTING_DRAFT_UPDATE=true");
@@ -1489,6 +1550,7 @@ Commands:
   update-draft-sources --manifest <path>
   estimate-openai-generation --package <path>
   generate-openai-articles --package <path> --output <path> --confirm-max-cost-cents <cents>
+  run-verified-draft-pipeline --plan <path> --images <path> --sources <path> --output <new-directory> --confirm-max-cost-cents <cents> --confirm-draft-save <request-id>
   estimate-openai-remediations --package <path>
   generate-openai-remediations --package <path> --output <path> --confirm-max-cost-cents <cents>
   prepare-article-queue --manifest <path> --output <path>

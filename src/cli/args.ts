@@ -98,6 +98,17 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     options: ["package", "output", "confirm-max-cost-cents"],
     requiresDatabase: false
   },
+  "run-verified-draft-pipeline": {
+    options: [
+      "plan",
+      "images",
+      "sources",
+      "output",
+      "confirm-max-cost-cents",
+      "confirm-draft-save"
+    ],
+    requiresDatabase: true
+  },
   "estimate-openai-remediations": { options: ["package"], requiresDatabase: false },
   "generate-openai-remediations": {
     options: ["package", "output", "confirm-max-cost-cents"],

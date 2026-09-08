@@ -242,6 +242,18 @@ npm run dev -- generate-openai-articles --package data/article-generation-packag
 
 生成結果はそのまま記事キューにはなりません。前項の `import-generated-articles` で独立検証してから取り込みます。
 
+### 検証付き単一下書きパイプライン
+
+生成計画、画像割当、公式出典を1件分だけ指定し、AI記事生成、コンテンツ監査、Blogger下書き保存、再読込による保存確認までを1コマンドで実行できます。新規下書き専用であり、既存下書きの更新、予約、公開は行いません。
+
+実行前に `estimate-openai-generation` で最大料金を確認してください。生成計画は `targetOperation: "save-drafts"`、1ブログ・1リクエスト、`blogger.postEditorUrl` なしである必要があります。`.env` は `ENABLE_ARTICLE_GENERATION=true`、`ENABLE_DRAFT_SAVE=true`、`ENABLE_DRY_RUN=false`、`ENABLE_EXISTING_DRAFT_UPDATE=false`、`ENABLE_SCHEDULED_POST=false` とし、対象ブログIDを `AUTHORIZED_BLOG_IDS` で明示します。
+
+```bash
+npm run dev -- run-verified-draft-pipeline --plan data/article-generation-plan.json --images data/batch-images.json --sources data/batch-sources.json --output data/verified-draft-run-001 --confirm-max-cost-cents <cents> --confirm-draft-save <request-id>
+```
+
+費用と対象の確認値、画像ファイル、出典の完全一致をAPI通信前に検証します。新規出力ディレクトリには生成前確認、生成結果、API使用量、コンパイル済みバッチ、最終要約を別々に保存し、既存ファイルは上書きしません。下書き保存は既存のコンテンツ監査と保存後監査を通過した場合だけ `PASS` になります。失敗時の自動再試行は行いません。
+
 ## 記事キューのブログ振り分け
 
 Phase 6 の最初の機能として、完成済みの記事候補をローカルで検証し、ブログ設定の `primaryTheme`、`topicClusters`、`excludedTopics` に基づいて既存バッチ形式へ振り分けられます。

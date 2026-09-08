@@ -280,6 +280,33 @@ describe("parseArgs", () => {
     });
     expect(
       parseArgs([
+        "run-verified-draft-pipeline",
+        "--plan",
+        "plan.json",
+        "--images",
+        "images.json",
+        "--sources",
+        "sources.json",
+        "--output",
+        "pipeline-output",
+        "--confirm-max-cost-cents",
+        "8",
+        "--confirm-draft-save",
+        "request-one"
+      ])
+    ).toEqual({
+      command: "run-verified-draft-pipeline",
+      options: {
+        plan: "plan.json",
+        images: "images.json",
+        sources: "sources.json",
+        output: "pipeline-output",
+        "confirm-max-cost-cents": "8",
+        "confirm-draft-save": "request-one"
+      }
+    });
+    expect(
+      parseArgs([
         "attach-batch-sources",
         "--manifest",
         "batch.json",
@@ -606,6 +633,7 @@ describe("commandRequiresDatabase", () => {
     expect(commandRequiresDatabase("list-schedule-batches")).toBe(false);
     expect(commandRequiresDatabase("execute-schedule")).toBe(true);
     expect(commandRequiresDatabase("run-batch")).toBe(true);
+    expect(commandRequiresDatabase("run-verified-draft-pipeline")).toBe(true);
     expect(commandRequiresDatabase("run-schedule-batch")).toBe(true);
     expect(commandRequiresDatabase("prepare-campaign")).toBe(true);
     expect(commandRequiresDatabase("validate-campaign")).toBe(true);
