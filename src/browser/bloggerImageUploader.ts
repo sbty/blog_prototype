@@ -116,29 +116,28 @@ export class BloggerImageUploader {
     page: Page,
     assertCanMutate?: () => Promise<void>
   ): Promise<void> {
-    const selectedComposeSelector =
-      `${this.selectors.composeViewOption}[aria-selected="true"]`;
-    const selectedCompose = await this.firstVisible(
-      page.locator(selectedComposeSelector),
-      250
-    );
-    if (selectedCompose) return;
+    const activeEditor = await this.firstVisible(page.locator("[data-editmode]"), 5000);
+    if (activeEditor) {
+      const activeMode = (await activeEditor.getAttribute("data-editmode"))?.toLowerCase();
+      if (activeMode === "compose") return;
+    }
 
-    const listbox = await this.firstVisible(page.locator(this.selectors.viewModeListbox), 5000);
+    const listbox = await this.firstVisible(
+      activeEditor?.locator(this.selectors.viewModeListbox) ??
+        page.locator(this.selectors.viewModeListbox),
+      5000
+    );
     if (!listbox) {
       if (await this.firstVisible(page.locator(this.selectors.insertImageButton), 1000)) return;
       throw new Error("Blogger editor view selector was not detected");
     }
     await performImageMutationWithGuard(assertCanMutate, () => listbox.click());
-    const compose = await this.firstVisible(
-      page.locator(this.selectors.composeViewOption),
-      5000
-    );
+    const compose = await this.firstVisible(page.locator(this.selectors.composeViewOption), 5000);
     if (!compose) throw new Error("Blogger Compose view option was not detected");
     await performImageMutationWithGuard(assertCanMutate, () => compose.click());
     await page.waitForTimeout(500);
     const activeCompose = await this.firstVisible(
-      page.locator(selectedComposeSelector),
+      page.locator('[data-editmode="COMPOSE"], [data-editmode="compose"]'),
       5000
     );
     if (!activeCompose) throw new Error("Blogger editor did not switch to Compose view");
@@ -254,15 +253,12 @@ export class BloggerImageUploader {
   }
 
   private async firstVisible(locator: Locator, timeout: number): Promise<Locator | null> {
-    await locator
-      .first()
-      .waitFor({ state: "attached", timeout })
-      .catch(() => undefined);
-    const count = await locator.count().catch(() => 0);
-    for (let index = 0; index < count; index += 1) {
-      const candidate = locator.nth(index);
-      if (await candidate.isVisible().catch(() => false)) return candidate;
+    const candidate = locator.filter({ visible: true }).first();
+    try {
+      await candidate.waitFor({ state: "visible", timeout });
+      return candidate;
+    } catch {
+      return null;
     }
-    return null;
   }
 }

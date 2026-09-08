@@ -1,8 +1,41 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import type { Locator } from "@playwright/test";
+import { BloggerImageUploader } from "../browser/bloggerImageUploader.js";
+import { loadBloggerSelectors } from "../browser/bloggerSelectors.js";
 import { describe, expect, it } from "vitest";
 
 describe("Blogger image upload recovery", () => {
+  it("waits for a delayed visible option even when a hidden duplicate is already attached", async () => {
+    let visible = false;
+    const revealed = new Promise<void>((resolve) =>
+      setTimeout(() => {
+        visible = true;
+        resolve();
+      }, 10)
+    );
+    const hidden = { waitFor: async () => undefined, isVisible: async () => false };
+    const option = {
+      waitFor: async ({ state }: { state: string }) => {
+        if (state === "visible") await revealed;
+      },
+      isVisible: async () => visible
+    };
+    const locator = {
+      first: () => hidden,
+      count: async () => 2,
+      nth: (index: number) => (index === 0 ? hidden : option),
+      filter: () => ({ first: () => option })
+    } as unknown as Locator;
+    const instance = new BloggerImageUploader(
+      await loadBloggerSelectors("config/blogger-selectors.json")
+    ) as unknown as {
+      firstVisible(locator: Locator, timeout: number): Promise<unknown>;
+    };
+    expect(await instance.firstVisible(locator, 1000)).toBe(option);
+    expect(visible).toBe(true);
+  });
+
   const uploader = readFileSync(path.resolve("src/browser/bloggerImageUploader.ts"), "utf8");
   const browserClient = readFileSync(path.resolve("src/browser/bloggerDryRun.ts"), "utf8");
   const selectors = JSON.parse(
@@ -20,12 +53,13 @@ describe("Blogger image upload recovery", () => {
     expect(selectors.uploadFromComputerMenuItem).toContain("パソコンからアップロード");
   });
 
-  it("ignores hidden duplicate Compose options and verifies the visible editor switched", () => {
+  it("scopes the mode control to the visible editor and verifies Compose mode", () => {
     const methodStart = uploader.indexOf("private async ensureComposeView");
     const method = uploader.slice(methodStart, uploader.indexOf("private async waitForFileInput"));
 
     expect(method).toContain("this.firstVisible(");
-    expect(method).toContain("selectedComposeSelector");
+    expect(method).toContain('page.locator("[data-editmode]")');
+    expect(method).toContain("activeEditor?.locator(this.selectors.viewModeListbox)");
     expect(method).not.toContain("selectedCompose.count()");
     expect(method).toContain("Blogger editor did not switch to Compose view");
   });
