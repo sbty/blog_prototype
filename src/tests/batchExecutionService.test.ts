@@ -32,13 +32,16 @@ function article(slug: string, scheduledAt?: string) {
   };
 }
 
-function fixture(input: { draftEnabled?: boolean; dryRunEnabled?: boolean } = {}) {
+function fixture(
+  input: { draftEnabled?: boolean; dryRunEnabled?: boolean; authorizedBlogIds?: string } = {}
+) {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "blogger-batch-"));
   const config = loadConfig({
     DATA_DIR: dataDir,
     DATABASE_PATH: path.join(dataDir, "app.sqlite"),
     ENABLE_DRY_RUN: String(input.dryRunEnabled ?? true),
     ENABLE_DRAFT_SAVE: String(input.draftEnabled ?? true),
+    AUTHORIZED_BLOG_IDS: input.authorizedBlogIds ?? "1111111111,2222222222",
     ENABLE_SCHEDULED_POST: "false"
   });
   type ExecutorInput = { blog: { blogKey: string }; article: { slug: string } };
@@ -190,6 +193,24 @@ describe("BatchExecutionService", () => {
         ]
       })
     ).rejects.toThrow("Unknown blogKey");
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+
+  it("rejects a mixed-authorization save batch before auditing or invoking Blogger", async () => {
+    const { service, saveDraft, contentAudit } = fixture({ authorizedBlogIds: "1111111111" });
+
+    await expect(
+      service.execute({
+        operation: "save-drafts",
+        blogs: [blog("blog-1"), blog("blog-2")],
+        items: [
+          { blogKey: "blog-1", article: article("one") },
+          { blogKey: "blog-2", article: article("two") }
+        ]
+      })
+    ).rejects.toThrow("Draft save is not authorized for blog 2222222222");
+
+    expect(contentAudit).not.toHaveBeenCalled();
     expect(saveDraft).not.toHaveBeenCalled();
   });
 

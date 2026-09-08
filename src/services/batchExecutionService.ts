@@ -10,6 +10,7 @@ import {
   ContentBatchAuditService,
   type ContentBatchAuditResult
 } from "./contentBatchAuditService.js";
+import { assertDraftSaveAuthorized } from "./draftSaveAuthorization.js";
 
 interface ItemExecutionResult {
   jobId: string;
@@ -70,6 +71,9 @@ export class BatchExecutionService {
   async execute(input: unknown): Promise<BatchExecutionResult> {
     const manifest = batchManifestSchema.parse(input);
     this.assertOperationEnabled(manifest.operation);
+    if (manifest.operation === "save-drafts") {
+      assertDraftSaveAuthorized(this.config, manifest.blogs);
+    }
     await assertNotStopped(this.config.DATA_DIR);
 
     const batchId = makeJobId("batch");

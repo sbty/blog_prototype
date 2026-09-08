@@ -178,6 +178,89 @@ function citedUrls(html: string): Set<string> {
   return urls;
 }
 
+const genericBoilerplateMarkers = [
+  "まずは対象を固定して確認する",
+  "確認手順を分ける",
+  "判断に使う基準",
+  "実行前の最終チェックリスト",
+  "確認結果の読み方",
+  "製品型番、ソフトウェアの版、利用地域、利用時点によって前提が変わります",
+  "機器・アカウント・旅程を一つずつ書き出します"
+];
+
+const unrelatedDomainSignals = [
+  {
+    name: "travel",
+    minimumTerms: 2,
+    terms: ["旅行", "旅程", "渡航", "入国", "出発", "航空券", "パスポート", "itinerary", "flight"]
+  },
+  {
+    name: "account",
+    // Account ownership and sign-in can be intrinsic to software, game, and DRM articles.
+    // Require the broader generic cluster before treating it as an unrelated add-on.
+    minimumTerms: 3,
+    terms: ["アカウント", "ログイン", "パスワード", "プロフィール", "account", "login", "password"]
+  },
+  {
+    name: "hardware",
+    minimumTerms: 2,
+    terms: ["製品型番", "マザーボード", "cpu", "gpu", "ケーブル", "充電器"]
+  }
+] as const;
+
+function normalizeForMatch(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase("und");
+}
+
+function contentBriefText(item: {
+  article: { title: string };
+  provenance?: {
+    contentBrief?: { topic: string; searchIntent: string; requiredPoints: string[] };
+  };
+}): string {
+  const brief = item.provenance?.contentBrief;
+  return normalizeForMatch(
+    [item.article.title, brief?.topic, brief?.searchIntent, ...(brief?.requiredPoints ?? [])]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function genericBoilerplateMatches(text: string): string[] {
+  const normalized = normalizeForMatch(text);
+  return genericBoilerplateMarkers.filter((marker) =>
+    normalized.includes(normalizeForMatch(marker))
+  );
+}
+
+function unanchoredDomainSignals(
+  html: string,
+  item: {
+    article: { title: string };
+    provenance?: {
+      contentBrief?: { topic: string; searchIntent: string; requiredPoints: string[] };
+    };
+  }
+): string[] {
+  const anchors = contentBriefText(item);
+  const blocks = html
+    .split(/(?=<h[2-6]\b)/i)
+    .map(visibleText)
+    .filter(Boolean);
+  const signals = new Set<string>();
+  for (const block of blocks) {
+    const normalizedBlock = normalizeForMatch(block);
+    for (const domain of unrelatedDomainSignals) {
+      const termsInBlock = domain.terms.filter((term) => normalizedBlock.includes(term));
+      const domainIsAnchored = domain.terms.some((term) => anchors.includes(term));
+      if (termsInBlock.length >= domain.minimumTerms && !domainIsAnchored) {
+        signals.add(domain.name);
+      }
+    }
+  }
+  return [...signals];
+}
+
 export class ContentBatchAuditService {
   constructor(private readonly validateImage: ImageValidator = validateImageFile) {}
 
@@ -221,6 +304,22 @@ export class ContentBatchAuditService {
             code: "SEARCH_DESCRIPTION_LENGTH",
             severity: "ERROR",
             message: "Blogger search description must be at most 150 characters"
+          });
+        }
+        const boilerplate = genericBoilerplateMatches(text);
+        if (boilerplate.length > 0) {
+          issues.push({
+            code: "GENERIC_BOILERPLATE",
+            severity: "ERROR",
+            message: `Article contains generic boilerplate markers: ${boilerplate.join(", ")}`
+          });
+        }
+        const driftDomains = unanchoredDomainSignals(item.article.html, item);
+        if (driftDomains.length > 0) {
+          issues.push({
+            code: "TOPIC_DRIFT",
+            severity: "ERROR",
+            message: `Article contains unanchored terminology from unrelated domains: ${driftDomains.join(", ")}`
           });
         }
         if (!/<h2\b/i.test(item.article.html)) {

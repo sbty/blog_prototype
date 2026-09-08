@@ -49,7 +49,12 @@ function batch() {
         },
         provenance: {
           generationRequestId: "request-two",
-          sourceUrls: [sourceUrl]
+          sourceUrls: [sourceUrl],
+          contentBrief: {
+            topic: "Second topic correction",
+            searchIntent: "Correct the article without changing its focus",
+            requiredPoints: ["Retain the official source"]
+          }
         }
       }
     ]
@@ -143,7 +148,15 @@ describe("ContentRemediationImportService", () => {
         imagePath: "C:\\private\\generated-image.png",
         scheduledAt: "2026-08-20T00:00:00.000Z"
       },
-      provenance: { generationRequestId: "request-two", sourceUrls: [sourceUrl] }
+      provenance: {
+        generationRequestId: "request-two",
+        sourceUrls: [sourceUrl],
+        contentBrief: {
+          topic: "Second topic correction",
+          searchIntent: "Correct the article without changing its focus",
+          requiredPoints: ["Retain the official source"]
+        }
+      }
     });
     expect(result.importedAssignments).toEqual([
       {
@@ -237,6 +250,12 @@ describe("ContentRemediationImportService", () => {
     alteredSources.requests[0].provenance.sourceUrls = [researchedUrl];
     expect(() =>
       new ContentRemediationImportService().execute(batch(), alteredSources, responses())
+    ).toThrow("does not match the current source batch");
+
+    const alteredBrief = remediationPackage();
+    alteredBrief.requests[0].contentBrief!.searchIntent = "Altered search intent";
+    expect(() =>
+      new ContentRemediationImportService().execute(batch(), alteredBrief, responses())
     ).toThrow("does not match the current source batch");
   });
 });

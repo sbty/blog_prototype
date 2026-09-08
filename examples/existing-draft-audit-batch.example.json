@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "operation": "audit-existing-drafts",
+  "items": [
+    {
+      "blogPath": "./blogs/example.blog.json",
+      "articlePath": "./articles/example.article.json",
+      "postId": "1234567890123456789",
+      "postEditorUrl": "https://www.blogger.com/blog/post/edit/9876543210987654321/1234567890123456789",
+      "slug": "example-audited-draft"
+    }
+  ]
+}

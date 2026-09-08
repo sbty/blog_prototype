@@ -66,18 +66,38 @@ export interface OpenAIRemediationEstimate {
   pricingSafetyMultiplier: 5;
 }
 
+function onlyNeedsLengthExpansion(request: ContentRemediationPackage["requests"][number]): boolean {
+  return (
+    request.audit.issues.length > 0 &&
+    request.audit.issues.every((issue) => issue.code === "TARGET_LENGTH")
+  );
+}
+
 function prompt(remediationPackage: ContentRemediationPackage): string {
   const lengthRequirements = remediationPackage.requests
     .map(
       (request) =>
-        `${request.remediationId}: ${request.editorialProfile.targetLength.min}-${request.editorialProfile.targetLength.max} visible non-whitespace characters; target ${Math.floor((request.editorialProfile.targetLength.min + request.editorialProfile.targetLength.max) / 2)} characters and keep below ${request.editorialProfile.targetLength.max - 300}`
+        `${request.remediationId}: ${request.editorialProfile.targetLength.min}-${request.editorialProfile.targetLength.max} visible non-whitespace characters; target ${Math.floor((request.editorialProfile.targetLength.min + request.editorialProfile.targetLength.max) / 2)} characters`
     )
     .join("; ");
+  const preservationRequirements = remediationPackage.requests
+    .map((request) => {
+      const brief = request.contentBrief
+        ? `Topic: ${request.contentBrief.topic}. Search intent: ${request.contentBrief.searchIntent}. Required points: ${request.contentBrief.requiredPoints.join(" | ")}.`
+        : `Topic: ${request.currentArticle.title}.`;
+      const changeRule = onlyNeedsLengthExpansion(request)
+        ? "The only error is length: retain currentArticle.html verbatim as a contiguous substring and add only focused material before the official-sources section. Preserve title, labels, and search description exactly."
+        : "Change only material needed to resolve the listed audit issues; retain all existing material that is already valid and on-topic.";
+      return `${request.remediationId}: ${brief} ${changeRule}`;
+    })
+    .join("\n");
   return [
     "Return a complete corrected replacement for every remediation request as the required structured response.",
     "Resolve every audit issue. Preserve each remediationId and slug exactly.",
     "Use every provided source URL exactly once in sourceUrlsUsed and cite it in the article as an HTTPS link.",
-    `The corrected HTML must meet these hard visible-text length ranges: ${lengthRequirements}. Keep every article at or below 3000 visible non-whitespace characters, even when its allowed maximum is higher. Aim for each target, do not merely approach the maximum, and never exceed it.`,
+    `The corrected HTML must meet these hard visible-text length ranges: ${lengthRequirements}. Aim for each target and never exceed its maximum.`,
+    "Treat each request as isolated. Every heading and paragraph must directly support that request's topic, search intent, required points, or official source. Never add generic cross-domain checklists or terminology from another request.",
+    preservationRequirements,
     "Do not invent sources, use tools, add active HTML, or include image paths or scheduling data.",
     JSON.stringify(remediationPackage)
   ].join("\n");
@@ -114,6 +134,22 @@ function assertMatchesPackage(
       throw new Error(`OpenAI remediation response is missing ${request.remediationId}`);
     if (response.article.slug !== request.currentArticle.slug) {
       throw new Error(`OpenAI remediation response changed slug for ${request.remediationId}`);
+    }
+    if (onlyNeedsLengthExpansion(request)) {
+      if (
+        response.article.title !== request.currentArticle.title ||
+        JSON.stringify(response.article.labels) !== JSON.stringify(request.currentArticle.labels) ||
+        response.article.searchDescription !== request.currentArticle.searchDescription
+      ) {
+        throw new Error(
+          `Length-only remediation ${request.remediationId} must preserve title, labels, and search description`
+        );
+      }
+      if (!response.article.html.includes(request.currentArticle.html)) {
+        throw new Error(
+          `Length-only remediation ${request.remediationId} must retain the current article HTML verbatim`
+        );
+      }
     }
     if (!sameUrls(request.provenance.sourceUrls, response.sourceUrlsUsed)) {
       throw new Error(

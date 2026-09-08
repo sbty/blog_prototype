@@ -173,13 +173,13 @@ npm run dev -- attach-batch-images --manifest data/generated-article-batch.json 
 
 全バッチ項目に対応する割り当てがちょうど1件ずつあること、画像が重複利用されていないこと、拡張子と実データ形式が一致すること、ファイルが空でなく10 MiB以下であることを確認してから新しいバッチを作ります。既に`imagePath`がある記事、割り当て漏れ、未知の記事、シンボリックリンク、既存出力は拒否します。このコマンドもブラウザやBloggerを開かず、画像自体の生成やアップロードは行いません。
 
-生成結果の検証、ブログ振り分け、画像割り当てを中間ファイルなしで一括実行する場合は、次の統合コマンドを使用します。
+生成結果の検証、ブログ振り分け、画像割り当て、出典リンクの付与を中間ファイルなしで一括実行する場合は、次の統合コマンドを使用します。
 
 ```bash
-npm run dev -- compile-content-batch --plan examples/article-generation-plan.example.json --responses examples/generated-article-responses.example.json --images examples/batch-images.example.json --output data/content-batch.json
+npm run dev -- compile-content-batch --plan examples/article-generation-plan.example.json --responses examples/generated-article-responses.example.json --images examples/batch-images.example.json --sources examples/batch-sources.example.json --output data/content-batch.json
 ```
 
-3つの入力全体が合格した場合だけ、出典情報と検証済み画像パスを含む既存バッチ形式を新規作成します。記事生成、画像生成、Blogger保存は別工程であり、このコマンドから外部通信は発生しません。
+4つの入力全体が合格した場合だけ、各記事の出典リンク、検証済み画像パス、生成時の出典証跡を含む既存バッチ形式を新規作成します。記事生成、画像生成、Blogger保存は別工程であり、このコマンドから外部通信は発生しません。
 
 ### コンテンツバッチ監査
 
@@ -271,7 +271,7 @@ ENABLE_DRAFT_SAVE=true
 ENABLE_SCHEDULED_POST=false
 ```
 
-`continueOnError=true` では1件の失敗後も次の記事へ進みます。`false` では残りをスキップします。STOPファイルがある場合は常に残りを停止します。
+`continueOnError=true` では1件の失敗後も次の記事へ進みます。`false` では残りをスキップします。STOPファイルがある場合は常に残りを停止します。実保存には `ENABLE_DRAFT_SAVE=true` に加え、Git管理外の `.env` で `AUTHORIZED_TEST_BLOG_ID` または `AUTHORIZED_BLOG_IDS` に対象ブログIDを明示する必要があります。許可外または未設定のブログには、Blogger操作前に保存を拒否します。既存下書きを更新する場合は、対象の `blogger.postEditorUrl` を設定し、さらに `ENABLE_EXISTING_DRAFT_UPDATE=true` を明示します。指定URLと同一タイトルの下書きが1件だけ存在すると確認できなければ更新しません。
 
 予約計画を一括作成する場合は `operation` を `plan-schedules` に変更し、各記事へオフセット付きISO 8601形式の `scheduledAt` を指定します。この操作はローカル計画だけを作成し、Bloggerへ送信しません。両方の実行フラグを `false` にしてください。
 
@@ -421,6 +421,8 @@ Phase 7では、監査に失敗した `save-drafts` バッチの記事だけを�
 
 修正依頼の作成・取込・再監査はいずれもBloggerやAI APIを呼び出しません。AI APIへの実通信、Blogger下書き保存、予約、公開はそれぞれ既存の明示的な別経路と安全確認が必要です。
 
+現在の完了条件、コンテンツbrief保持、定型文・話題逸脱検出、長さだけの修正における既存内容保持、および総予算境界は [`docs/phase7-completion-checklist.md`](docs/phase7-completion-checklist.md) に記録しています。
+
 ## Google ログインで「ログインできませんでした」が出る場合
 
 Playwright 付属 Chromium で Google ログインを開くと、Google 側に「安全でないブラウザ」と判定されることがあります。ログイン突破を自動化せず、通常の Google Chrome と永続プロファイルを使ってください。
@@ -484,6 +486,8 @@ node dist/cli/index.js audit-published-post --blog examples/blog.example.json --
 ```
 
 このコマンドは公開フィードで記事タイトルが完全一致する投稿が1件だけであること、本文が空でないこと、同一ブログの公開URLであること、画像が1件だけであること、画像が HTTP 200 かつ空でないことを確認します。データベースやBlogger管理画面への書き込みは行いません。
+
+既存下書きの完全監査、監査対象選定、予約投稿のパーマリンク監査、公開予定記事のバッチ監視には追加の読取専用CLIがあります。入力形式、成功条件、30分の公開待機境界、修復準備と実変更の分離は [`docs/multi-blog-operations-runbook.md`](docs/multi-blog-operations-runbook.md) を参照してください。監査レポートや修復準備パッケージだけでは、Bloggerへの保存・予約・公開・削除は許可されません。
 
 ## 複数予約ジョブの一括承認・実行
 

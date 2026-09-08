@@ -2,6 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { ContentBatchAuditService } from "../services/contentBatchAuditService.js";
 import { ContentBatchCompilerService } from "../services/contentBatchCompilerService.js";
 
 function blog(blogKey: string, blogId: string, topic: string) {
@@ -10,7 +11,8 @@ function blog(blogKey: string, blogId: string, topic: string) {
     displayName: blogKey,
     adminUrl: `https://www.blogger.com/blog/posts/${blogId}`,
     primaryTheme: topic,
-    topicClusters: [topic]
+    topicClusters: [topic],
+    targetLength: { min: 1, max: 5000 }
   };
 }
 
@@ -74,6 +76,27 @@ function responses() {
   };
 }
 
+function sources() {
+  return {
+    schemaVersion: 1,
+    sectionHeading: "Official sources",
+    items: [
+      {
+        blogKey: "compatibility",
+        slug: "usb-c-power-check",
+        generationRequestId: "request-usb-c",
+        sources: [{ title: "USB-C source", url: "https://example.com/usb-c" }]
+      },
+      {
+        blogKey: "troubleshooting",
+        slug: "pc-game-stutter-check",
+        generationRequestId: "request-game-stutter",
+        sources: [{ title: "Game source", url: "https://example.org/game-stutter" }]
+      }
+    ]
+  };
+}
+
 function png(dir: string, name: string): string {
   const file = path.join(dir, `${name}.png`);
   writeFileSync(file, Buffer.from("89504e470d0a1a0a00000000", "hex"));
@@ -85,17 +108,22 @@ describe("ContentBatchCompilerService", () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "content-batch-"));
     const usbImage = png(dir, "usb-c");
     const gameImage = png(dir, "game");
-    const result = await new ContentBatchCompilerService().execute(plan(), responses(), {
-      schemaVersion: 1,
-      items: [
-        {
-          blogKey: "troubleshooting",
-          slug: "pc-game-stutter-check",
-          imagePath: gameImage
-        },
-        { blogKey: "compatibility", slug: "usb-c-power-check", imagePath: usbImage }
-      ]
-    });
+    const result = await new ContentBatchCompilerService().execute(
+      plan(),
+      responses(),
+      {
+        schemaVersion: 1,
+        items: [
+          {
+            blogKey: "troubleshooting",
+            slug: "pc-game-stutter-check",
+            imagePath: gameImage
+          },
+          { blogKey: "compatibility", slug: "usb-c-power-check", imagePath: usbImage }
+        ]
+      },
+      sources()
+    );
 
     expect(result.manifest.operation).toBe("save-drafts");
     expect(result.manifest.items.map((item) => item.blogKey)).toEqual([
@@ -112,6 +140,14 @@ describe("ContentBatchCompilerService", () => {
     ]);
     expect(result.requestIds).toEqual(["request-usb-c", "request-game-stutter"]);
     expect(result.images).toHaveLength(2);
+    expect(result.sources).toHaveLength(2);
+    expect(
+      result.manifest.items.every((item) => item.article.html.includes("official-sources"))
+    ).toBe(true);
+    await expect(new ContentBatchAuditService().execute(result.manifest)).resolves.toMatchObject({
+      status: "PASS",
+      counts: { total: 2, passed: 2, failed: 0, errors: 0 }
+    });
   });
 
   it("rejects invalid generated content before accepting image assignments", async () => {
@@ -119,7 +155,12 @@ describe("ContentBatchCompilerService", () => {
     invalid.items[1].article.slug = "changed-slug";
 
     await expect(
-      new ContentBatchCompilerService().execute(plan(), invalid, { schemaVersion: 1, items: [] })
+      new ContentBatchCompilerService().execute(
+        plan(),
+        invalid,
+        { schemaVersion: 1, items: [] },
+        sources()
+      )
     ).rejects.toThrow("changed the requested slug");
   });
 
@@ -128,10 +169,15 @@ describe("ContentBatchCompilerService", () => {
     const usbImage = png(dir, "usb-c");
 
     await expect(
-      new ContentBatchCompilerService().execute(plan(), responses(), {
-        schemaVersion: 1,
-        items: [{ blogKey: "compatibility", slug: "usb-c-power-check", imagePath: usbImage }]
-      })
+      new ContentBatchCompilerService().execute(
+        plan(),
+        responses(),
+        {
+          schemaVersion: 1,
+          items: [{ blogKey: "compatibility", slug: "usb-c-power-check", imagePath: usbImage }]
+        },
+        sources()
+      )
     ).rejects.toThrow("missing batch items: troubleshooting/pc-game-stutter-check");
   });
 });

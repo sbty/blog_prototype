@@ -5,6 +5,7 @@ export interface ParsedArgs {
 
 interface CommandSpec {
   options: readonly string[];
+  optionalOptions?: readonly string[];
   requiresDatabase: boolean;
 }
 
@@ -14,7 +15,41 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
   "open-login": { options: ["blog"], requiresDatabase: false },
   "register-blog": { options: ["blog"], requiresDatabase: true },
   "audit-drafts": { options: ["blog", "article"], requiresDatabase: false },
+  "audit-existing-draft": {
+    options: ["blog", "article", "post-id", "editor-url", "output"],
+    requiresDatabase: false
+  },
+  "audit-existing-draft-batch": { options: ["manifest", "output"], requiresDatabase: false },
+  "select-existing-draft-audit-targets": {
+    options: ["manifest", "output"],
+    requiresDatabase: false
+  },
+  "prepare-existing-draft-audit-selection": {
+    options: ["manifest", "output"],
+    requiresDatabase: false
+  },
   "audit-published-post": { options: ["blog", "article"], requiresDatabase: false },
+  "audit-published-post-complete": {
+    options: ["blog", "article", "post-id", "editor-url", "output"],
+    requiresDatabase: false
+  },
+  "audit-scheduled-permalinks": {
+    options: ["selection", "reconciliation", "output"],
+    requiresDatabase: false
+  },
+  "reaudit-scheduled-permalink-unverified": {
+    options: ["selection", "previous-report", "output"],
+    requiresDatabase: false
+  },
+  "prepare-scheduled-permalink-repair": {
+    options: ["selection", "audit", "output"],
+    requiresDatabase: false
+  },
+  "audit-publication-monitors": {
+    options: ["manifest", "output"],
+    optionalOptions: ["retry-unverified"],
+    requiresDatabase: false
+  },
   "dry-run": { options: ["blog", "article"], requiresDatabase: true },
   "save-draft": { options: ["blog", "article"], requiresDatabase: true },
   "prepare-generation-package": { options: ["manifest", "output"], requiresDatabase: false },
@@ -35,7 +70,7 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
     requiresDatabase: false
   },
   "compile-content-batch": {
-    options: ["plan", "responses", "images", "output"],
+    options: ["plan", "responses", "images", "sources", "output"],
     requiresDatabase: false
   },
   "audit-content-batch": {
@@ -70,6 +105,8 @@ const commandSpecs: Readonly<Record<string, CommandSpec>> = {
   },
   "prepare-article-queue": { options: ["manifest", "output"], requiresDatabase: false },
   "run-batch": { options: ["manifest"], requiresDatabase: true },
+  "update-existing-drafts": { options: ["manifest", "targets"], requiresDatabase: true },
+  "update-existing-draft-images": { options: ["manifest", "targets"], requiresDatabase: true },
   "run-schedule-batch": { options: ["manifest"], requiresDatabase: true },
   "inspect-schedule-batch": { options: ["batch"], requiresDatabase: false },
   "list-schedule-batches": { options: [], requiresDatabase: false },
@@ -114,7 +151,8 @@ export function commandRequiresDatabase(command: string): boolean {
 
 export function parseArgs(argv: string[]): ParsedArgs {
   const [command = "help", ...rest] = argv;
-  const allowedOptions = getCommandSpec(command).options;
+  const spec = getCommandSpec(command);
+  const allowedOptions = [...spec.options, ...(spec.optionalOptions ?? [])];
 
   const options: Record<string, string> = {};
   for (let index = 0; index < rest.length; index += 1) {
@@ -139,7 +177,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     index += 1;
   }
 
-  for (const key of allowedOptions) {
+  for (const key of spec.options) {
     if (!Object.hasOwn(options, key)) {
       throw new Error(`Missing required option --${key}`);
     }

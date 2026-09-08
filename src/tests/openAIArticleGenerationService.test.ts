@@ -129,7 +129,18 @@ describe("OpenAIArticleGenerationService", () => {
 
   it("uses Responses structured output with storage disabled and validates the result", async () => {
     const fetchMock = vi.fn(async () =>
-      Response.json({ id: "resp_test", status: "completed", output_text: generatedOutput() })
+      Response.json({
+        id: "resp_test",
+        status: "completed",
+        output_text: generatedOutput(),
+        usage: {
+          input_tokens: 200,
+          output_tokens: 500,
+          total_tokens: 700,
+          input_tokens_details: { cached_tokens: 50 },
+          output_tokens_details: { reasoning_tokens: 25 }
+        }
+      })
     );
     const result = await new OpenAIArticleGenerationService(
       config(),
@@ -138,6 +149,14 @@ describe("OpenAIArticleGenerationService", () => {
 
     expect(result.responses.items[0].article).not.toHaveProperty("scheduledAt");
     expect(result.responseId).toBe("resp_test");
+    expect(result.usage).toMatchObject({
+      inputTokens: 200,
+      cachedInputTokens: 50,
+      outputTokens: 500,
+      reasoningTokens: 25,
+      totalTokens: 700,
+      usageBasedCostCents: 0.064
+    });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://api.openai.com/v1/responses");
     const request = JSON.parse(String(init?.body));
@@ -149,6 +168,21 @@ describe("OpenAIArticleGenerationService", () => {
       text: { format: { type: "json_schema", strict: true } }
     });
     expect(request).not.toHaveProperty("tools");
+    expect(request.input).toContain("USB-C compatibility");
+    expect(request.input).toContain("Check compatibility");
+    expect(request.input).not.toContain('"targetAudience"');
+  });
+
+  it("returns null usage when the API response does not include token accounting", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ id: "resp_test", status: "completed", output_text: generatedOutput() })
+    );
+    const result = await new OpenAIArticleGenerationService(
+      config(),
+      fetchMock as unknown as typeof fetch
+    ).execute(generationPackage, 8);
+
+    expect(result.usage).toBeNull();
   });
 
   it("rejects HTTP errors, refusals, and responses that change the contract", async () => {
@@ -258,10 +292,10 @@ describe("OpenAIContentRemediationService", () => {
                     {
                       remediationId: "content-remediation-0001",
                       article: {
-                        title: "Corrected",
-                        html: '<h2>Guide</h2><p><a href="https://example.com/source">Source</a> explains this corrected compatibility guide in sufficient detail.</p>',
-                        labels: ["guide"],
-                        searchDescription: "Corrected",
+                        title: "Original",
+                        html: '<p>Original</p><h2>Guide</h2><p><a href="https://example.com/source">Source</a> explains this corrected compatibility guide in sufficient detail.</p>',
+                        labels: [],
+                        searchDescription: "Original",
                         slug: "original"
                       },
                       sourceUrlsUsed: ["https://example.com/source"]
@@ -293,6 +327,7 @@ describe("OpenAIContentRemediationService", () => {
       "content-remediation-0001: 10-1000 visible non-whitespace characters"
     );
     expect(request.input).toContain("target 505 characters");
+    expect(request.input).toContain("retain currentArticle.html verbatim");
   });
 
   it("rejects remediation output outside the requested text-length range", async () => {
@@ -305,10 +340,10 @@ describe("OpenAIContentRemediationService", () => {
             {
               remediationId: "content-remediation-0001",
               article: {
-                title: "Corrected",
-                html: '<p><a href="https://example.com/source">Source</a></p>',
-                labels: ["guide"],
-                searchDescription: "Corrected",
+                title: "Original",
+                html: '<p>Original</p><a href="https://example.com/source"></a>',
+                labels: [],
+                searchDescription: "Original",
                 slug: "original"
               },
               sourceUrlsUsed: ["https://example.com/source"]
@@ -323,5 +358,36 @@ describe("OpenAIContentRemediationService", () => {
         8
       )
     ).rejects.toThrow("outside 10-1000");
+  });
+
+  it("rejects a length-only remediation that replaces valid existing content", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        status: "completed",
+        output_text: JSON.stringify({
+          schemaVersion: 1,
+          items: [
+            {
+              remediationId: "content-remediation-0001",
+              article: {
+                title: "Original",
+                html: '<p><a href="https://example.com/source">Source</a> completely rewritten.</p>',
+                labels: [],
+                searchDescription: "Original",
+                slug: "original"
+              },
+              sourceUrlsUsed: ["https://example.com/source"]
+            }
+          ]
+        })
+      })
+    );
+
+    await expect(
+      new OpenAIContentRemediationService(config(), fetchMock as unknown as typeof fetch).execute(
+        remediationPackage,
+        8
+      )
+    ).rejects.toThrow("must retain the current article HTML verbatim");
   });
 });

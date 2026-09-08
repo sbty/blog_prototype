@@ -108,6 +108,7 @@ const envSchema = z.object({
   ENABLE_IMAGE_GENERATION: boolFromString("true"),
   ENABLE_DRY_RUN: boolFromString("true"),
   ENABLE_DRAFT_SAVE: boolFromString("false"),
+  ENABLE_EXISTING_DRAFT_UPDATE: boolFromString("false"),
   ENABLE_SCHEDULED_POST: boolFromString("false"),
   SYSTEM_DAILY_POST_LIMIT: intFromString("3"),
   PER_BLOG_DAILY_POST_LIMIT: intFromString("1"),

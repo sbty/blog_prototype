@@ -41,6 +41,8 @@ A code path that is authorized to create or modify a draft must not automaticall
 
 Do not bypass this separation for implementation convenience.
 
+Draft saving requires both its dedicated enable flag and an explicit Blogger blog-ID allowlist. A draft-save batch must not treat global enablement as authorization for every configured blog. The complete batch allowlist check must pass before its content audit or any per-item Blogger operation begins.
+
 ---
 
 ## 3. Scheduling Requires Explicit Preparation
@@ -411,6 +413,14 @@ For ordinary bug fixes and incremental features:
 - update the directly related tests.
 
 Broader refactoring should be deliberate rather than incidental.
+
+---
+
+## 21. Read-Only Evidence Does Not Authorize Mutation
+
+Existing-draft audits, scheduled-permalink audits and re-audits, publication monitors, and repair-preparation packages are read-only evidence workflows.
+
+They must not save, schedule, publish, repair, or delete Blogger content. A PASS result proves only the fields and identity covered by that audit. A repair candidate or approval package does not authorize execution; any later mutation requires its own exact target, safety preflight, feature flags, allowlist, STOP checks, and explicit user approval.
 
 ---
 

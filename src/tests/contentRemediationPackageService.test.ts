@@ -57,7 +57,12 @@ function batch() {
         },
         provenance: {
           generationRequestId: "request-two",
-          sourceUrls: [sourceUrl]
+          sourceUrls: [sourceUrl],
+          contentBrief: {
+            topic: "Second topic correction",
+            searchIntent: "Correct the article without changing its focus",
+            requiredPoints: ["Retain the official source"]
+          }
         }
       }
     ]
@@ -129,6 +134,11 @@ describe("ContentRemediationPackageService", () => {
       },
       currentArticle: { slug: "needs-correction" },
       provenance: { sourceUrls: [sourceUrl], requiresSourceResearch: false },
+      contentBrief: {
+        topic: "Second topic correction",
+        searchIntent: "Correct the article without changing its focus",
+        requiredPoints: ["Retain the official source"]
+      },
       audit: { issues: [expect.objectContaining({ code: "TARGET_LENGTH" })] }
     });
     expect(request.currentArticle).not.toHaveProperty("imagePath");

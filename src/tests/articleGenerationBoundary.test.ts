@@ -129,7 +129,12 @@ describe("GeneratedArticleImportService", () => {
           routing: { blogKey: "compatibility", topics: ["USB-C and USB PD"] },
           provenance: {
             generationRequestId: "request-one",
-            sourceUrls: ["https://example.org/source-b", "https://example.com/source-a"]
+            sourceUrls: ["https://example.org/source-b", "https://example.com/source-a"],
+            contentBrief: {
+              topic: "USB-C compatibility",
+              searchIntent: "Check compatibility before purchase",
+              requiredPoints: ["Explain power negotiation"]
+            }
           }
         }
       ]

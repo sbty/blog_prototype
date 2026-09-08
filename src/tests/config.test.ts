@@ -7,6 +7,7 @@ describe("loadConfig", () => {
     expect(config.APP_TIMEZONE).toBe("Asia/Tokyo");
     expect(config.ENABLE_DRY_RUN).toBe(true);
     expect(config.ENABLE_DRAFT_SAVE).toBe(false);
+    expect(config.ENABLE_EXISTING_DRAFT_UPDATE).toBe(false);
     expect(config.ENABLE_ARTICLE_GENERATION).toBe(false);
     expect(config.OPENAI_TEXT_MODEL).toBe("gpt-5.6-luna");
     expect(config.OPENAI_MAX_COST_CENTS).toBe(10);

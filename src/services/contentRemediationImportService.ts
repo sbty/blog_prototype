@@ -123,7 +123,8 @@ function assertRequestMatchesSource(
       source.blogKey !== request.blogKey ||
       JSON.stringify(currentArticle) !== JSON.stringify(request.currentArticle) ||
       JSON.stringify(editorialProfile) !== JSON.stringify(request.editorialProfile) ||
-      !normalizedUrlsMatch(sourceUrls, request.provenance.sourceUrls)
+      !normalizedUrlsMatch(sourceUrls, request.provenance.sourceUrls) ||
+      JSON.stringify(source.provenance?.contentBrief) !== JSON.stringify(request.contentBrief)
     ) {
       throw new Error(
         `Content remediation ${request.remediationId} does not match the current source batch`
@@ -190,7 +191,8 @@ export class ContentRemediationImportService {
         },
         provenance: {
           generationRequestId: source.provenance?.generationRequestId ?? request.remediationId,
-          sourceUrls: response.sourceUrlsUsed
+          sourceUrls: response.sourceUrlsUsed,
+          ...(request.contentBrief ? { contentBrief: request.contentBrief } : {})
         }
       };
     });

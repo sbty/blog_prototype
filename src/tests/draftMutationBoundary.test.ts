@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   clickDraftSaveButtonWithGuard,
   performDraftMutationWithGuard,
+  pressDraftSaveMenuItemWithGuard,
   requireDraftMutationGuard,
   uploadDraftImageWithGuard,
   validateDraftTitle
@@ -25,11 +26,17 @@ describe("clickDraftSaveButtonWithGuard", () => {
     };
 
     await expect(
-      clickDraftSaveButtonWithGuard(button, async () => {
-        order.push("guard");
-      })
+      clickDraftSaveButtonWithGuard(
+        button,
+        async () => {
+          order.push("guard");
+        },
+        () => {
+          order.push("boundary");
+        }
+      )
     ).resolves.toBe(true);
-    expect(order).toEqual(["attribute", "guard", "click"]);
+    expect(order).toEqual(["attribute", "guard", "boundary", "click"]);
   });
 
   it("does not click save when the mutation guard fails", async () => {
@@ -56,6 +63,50 @@ describe("clickDraftSaveButtonWithGuard", () => {
     await expect(clickDraftSaveButtonWithGuard(button, guard)).resolves.toBe(false);
     expect(guard).not.toHaveBeenCalled();
     expect(button.click).not.toHaveBeenCalled();
+  });
+});
+describe("pressDraftSaveMenuItemWithGuard", () => {
+  it("runs the mutation guard immediately before one keyboard Save activation", async () => {
+    const order: string[] = [];
+    const menuItem = {
+      getAttribute: vi.fn(async () => {
+        order.push("attribute");
+        return null;
+      }),
+      click: vi.fn(async () => {
+        order.push("click");
+      }),
+      press: vi.fn(async (key: string) => {
+        order.push(`press:${key}`);
+      })
+    };
+
+    await expect(
+      pressDraftSaveMenuItemWithGuard(
+        menuItem,
+        async () => {
+          order.push("guard");
+        },
+        () => {
+          order.push("boundary");
+        }
+      )
+    ).resolves.toBe(true);
+    expect(order).toEqual(["attribute", "guard", "boundary", "press:Enter"]);
+    expect(menuItem.click).not.toHaveBeenCalled();
+  });
+
+  it("does not guard or press when the Save menu item is disabled", async () => {
+    const guard = vi.fn(async () => undefined);
+    const menuItem = {
+      getAttribute: vi.fn(async () => "true"),
+      click: vi.fn(async () => undefined),
+      press: vi.fn(async () => undefined)
+    };
+
+    await expect(pressDraftSaveMenuItemWithGuard(menuItem, guard)).resolves.toBe(false);
+    expect(guard).not.toHaveBeenCalled();
+    expect(menuItem.press).not.toHaveBeenCalled();
   });
 });
 describe("uploadDraftImageWithGuard", () => {

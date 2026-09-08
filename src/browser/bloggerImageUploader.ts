@@ -60,24 +60,27 @@ export class BloggerImageUploader {
       throw new Error("Blogger Upload from computer menu item was not detected");
     }
 
-    const uploadMenuItem = uploadItem
-      .locator('xpath=ancestor-or-self::*[@role="menuitem"][1]')
-      .first();
     const chooserPromise = page.waitForEvent("filechooser", { timeout: 3000 }).catch(() => null);
-    await uploadMenuItem.focus();
-    await performImageMutationWithGuard(assertCanMutate, () => uploadMenuItem.press("Enter"));
+    // Google Picker does not consistently open when this localized menu item
+    // receives a synthetic Enter key. A direct click opens either a native
+    // chooser or the Picker iframe containing its own file input.
+    await performImageMutationWithGuard(assertCanMutate, () => uploadItem.click());
     const chooser = await chooserPromise;
     if (chooser) {
-      await performImageMutationWithGuard(assertCanMutate, () => chooser.setFiles(image.absolutePath));
+      await performImageMutationWithGuard(assertCanMutate, () =>
+        chooser.setFiles(image.absolutePath)
+      );
     } else {
-      const fileInput = await this.waitForFileInput(page, 10000);
+      const fileInput = await this.waitForFileInput(page, 20000);
       if (fileInput) {
-        await performImageMutationWithGuard(assertCanMutate, () => fileInput.setInputFiles(image.absolutePath));
+        await performImageMutationWithGuard(assertCanMutate, () =>
+          fileInput.setInputFiles(image.absolutePath)
+        );
       } else {
         const browse = await this.waitForVisibleTarget(
           page,
           this.selectors.imageBrowseButton,
-          10000
+          20000
         );
         if (!browse) throw new Error("Blogger image file input was not detected");
         const browseChooser = browse.ownerPage
@@ -86,7 +89,9 @@ export class BloggerImageUploader {
         await performImageMutationWithGuard(assertCanMutate, () => browse.locator.click());
         const selected = await browseChooser;
         if (!selected) throw new Error("Blogger image file chooser did not open");
-        await performImageMutationWithGuard(assertCanMutate, () => selected.setFiles(image.absolutePath));
+        await performImageMutationWithGuard(assertCanMutate, () =>
+          selected.setFiles(image.absolutePath)
+        );
       }
     }
     const confirm = await this.firstVisibleAcrossFrames(
@@ -98,7 +103,12 @@ export class BloggerImageUploader {
       await performImageMutationWithGuard(assertCanMutate, () => confirm.click());
     }
 
-    const insertedImageCount = await this.waitForInsertedImage(page, beforeCount, 30000);
+    const insertedImageCount = await this.waitForInsertedImage(
+      page,
+      beforeCount,
+      90000,
+      assertCanMutate
+    );
     return { sourcePath: image.absolutePath, sizeBytes: image.sizeBytes, insertedImageCount };
   }
 
@@ -106,14 +116,16 @@ export class BloggerImageUploader {
     page: Page,
     assertCanMutate?: () => Promise<void>
   ): Promise<void> {
-    if (await this.firstVisible(page.locator(this.selectors.insertImageButton), 1000)) return;
     const selectedCompose = page.locator(
       `${this.selectors.composeViewOption}[aria-selected="true"]`
     );
     if ((await selectedCompose.count()) > 0) return;
 
     const listbox = await this.firstVisible(page.locator(this.selectors.viewModeListbox), 5000);
-    if (!listbox) throw new Error("Blogger editor view selector was not detected");
+    if (!listbox) {
+      if (await this.firstVisible(page.locator(this.selectors.insertImageButton), 1000)) return;
+      throw new Error("Blogger editor view selector was not detected");
+    }
     await performImageMutationWithGuard(assertCanMutate, () => listbox.click());
     const compose = page.locator(this.selectors.composeViewOption).last();
     await performImageMutationWithGuard(assertCanMutate, () => compose.click({ force: true }));
@@ -169,9 +181,17 @@ export class BloggerImageUploader {
   private async countInsertedImages(page: Page): Promise<number> {
     let count = 0;
     for (const frame of page.frames()) {
+      const isMainFrame = frame === page.mainFrame();
       count += await frame
-        .evaluate(() => {
+        .evaluate((mainFrame) => {
           const rendered = document.querySelectorAll('[contenteditable="true"] img').length;
+          // Blogger's Compose editor is an iframe whose body is not always
+          // marked contenteditable. Count uploaded Blogger-hosted images in
+          // that frame as well, while excluding toolbar icons in the parent
+          // document.
+          const iframeRendered = document.querySelectorAll(
+            'img[src*="blogger.googleusercontent.com"]'
+          ).length;
           const textareaMarkup = Array.from(document.querySelectorAll("textarea"))
             .map((element) => (element as HTMLTextAreaElement).value)
             .join("\n");
@@ -179,8 +199,8 @@ export class BloggerImageUploader {
             (HTMLElement & { CodeMirror?: { getValue: () => string } }) | null;
           const source = codeMirrorHost?.CodeMirror?.getValue() ?? textareaMarkup;
           const sourceImages = source.match(/<img\b/gi)?.length ?? 0;
-          return Math.max(rendered, sourceImages);
-        })
+          return Math.max(rendered, mainFrame ? 0 : iframeRendered, sourceImages);
+        }, isMainFrame)
         .catch(() => 0);
     }
     return count;
@@ -188,15 +208,37 @@ export class BloggerImageUploader {
   private async waitForInsertedImage(
     page: Page,
     beforeCount: number,
-    timeout: number
+    timeout: number,
+    assertCanMutate: () => Promise<void>
   ): Promise<number> {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
+      await this.confirmImageLayoutIfPresent(page, assertCanMutate);
       const count = await this.countInsertedImages(page);
       if (count > beforeCount) return count;
       await page.waitForTimeout(250);
     }
     throw new Error("Blogger did not confirm that the image was inserted");
+  }
+
+  private async confirmImageLayoutIfPresent(
+    page: Page,
+    assertCanMutate: () => Promise<void>
+  ): Promise<void> {
+    const dialogs = page.locator('[role="dialog"], [data-isdialog="true"]');
+    const count = await dialogs.count().catch(() => 0);
+    for (let index = 0; index < count; index += 1) {
+      const dialog = dialogs.nth(index);
+      if (!(await dialog.isVisible().catch(() => false))) continue;
+      const text = await dialog.innerText().catch(() => "");
+      if (!/レイアウトの選択|Choose layout|Select layout|Layout selection/i.test(text)) continue;
+      const confirm = dialog.locator('[data-mdc-dialog-action="ok"][role="button"]').first();
+      if (!(await confirm.isVisible().catch(() => false))) continue;
+      if ((await confirm.getAttribute("aria-disabled")) === "true") continue;
+      await performImageMutationWithGuard(assertCanMutate, () => confirm.click());
+      await dialog.waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      return;
+    }
   }
 
   private async firstVisible(locator: Locator, timeout: number): Promise<Locator | null> {

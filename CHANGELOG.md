@@ -7,10 +7,14 @@ All notable changes to this project are documented in this file.
 ### Added
 
 - Added a read-only Phase 7 content-batch audit for article length, provenance citations, images, Blogger search-description limits, headings, labels, titles, and excluded topics.
+- Preserved each generation request's topic, search intent, and required points through generated import, source attachment, content audit, remediation export, and corrected-content import.
+- Added generic-boilerplate and unanchored cross-domain topic-drift failures, with regression coverage for the first 16 operational drafts.
+- Added response-token usage evidence and a total-budget runner for explicitly approved isolated generation.
 
 ### Security
 
 - Write a durable audit report before failing invalid content batches, without opening a browser, contacting Blogger, using the database, or calling an AI provider.
+- Reject source assignments that contradict generated provenance and length-only remediations that replace otherwise valid article content.
 
 ## [0.3.0] - 2026-08-18
 

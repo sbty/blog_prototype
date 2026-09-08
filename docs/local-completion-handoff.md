@@ -8,6 +8,7 @@
 - Phase 5 dedicated-test-blog execution boundary, compiled-artifact verification, automated image-plus-schedule acceptance, public post/image audit, and operations runbook.
 - Multi-blog and multi-article campaign preparation, allowlisted schedule batches, all-items preflight, exact retry manifests, read-only campaign/batch inspection and listing, and one explicitly authorized two-blog scheduled-publication acceptance.
 - Phase 6 local article routing, generation export/import, guarded provider adapter, provenance-preserving batch compilation, validated image attachment, and integrated content-batch compilation.
+- Phase 7 read-only content audit, remediation package/import boundary, and guarded remediation provider adapter.
 
 Local evidence does not grant permission for another save, schedule, or publish operation.
 
@@ -36,6 +37,8 @@ Any expansion requires explicit authorization, separate acceptance criteria, a s
 
 ## Detailed records
 
+- [Current roadmap and worktree inventory](current-roadmap.md)
+
 - [Phase 2 checklist](phase2-completion-checklist.md)
 - [Phase 3 checklist](phase3-completion-checklist.md)
 - [Phase 4 checklist](phase4-completion-checklist.md)
@@ -46,4 +49,5 @@ Any expansion requires explicit authorization, separate acceptance criteria, a s
 - [Phase 5 operations runbook](phase5-operations-runbook.md)
 - [Phase 6 completion checklist](phase6-completion-checklist.md)
 - [Phase 6 release checklist](phase6-release-checklist.md)
+- [Phase 7 completion checklist](phase7-completion-checklist.md)
 - [Disabled recurring audit example](read-only-scheduled-audit-example.md)
