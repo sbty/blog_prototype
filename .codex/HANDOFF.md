@@ -1,15 +1,15 @@
 # Codex Handoff
 
 Updated: 2026-09-08 JST
-Status: execution guardrails fixed locally; audit runner redesign remains
+Status: compact process-driven audit boundary implemented locally; remote push requires approval
 Branch: codex/agent-workflow-and-audit
-Local history includes: d00f570 docs: hand off token efficiency redesign
+Local history includes: 99c6075 fix: compact existing draft audit summaries
 
 ## Priority for the next session
 
-Implement the process-driven read-only audit runner before expanding the
-Blogger audit. Root execution rules now prevent the model-driven polling and
-over-validation patterns that caused the excessive token usage.
+Push commit `99c6075` only after the user explicitly approves exporting it to
+the configured GitHub remote. Do not expand the Blogger audit while the current
+selection report has no eligible targets.
 
 ## Root-cause fix completed locally
 
@@ -42,16 +42,16 @@ over-validation patterns that caused the excessive token usage.
   repeatedly resending a large context across many model/tool round trips, not
   visible response size or file size.
 
-## Remaining audit-runner redesign
+## Audit-runner redesign completed locally
 
-1. Make read-only audit execution deterministic and process-driven. Start one
-   explicit command, let the process iterate internally, and return one compact
-   aggregate JSON report. Do not make the model control each candidate or poll
-   repeatedly.
-2. Separate audit execution from report interpretation and Git operations.
-3. Use lower reasoning effort for routine audit inspection when task/session
-   controls permit it.
-4. Add focused tests for the deterministic runner and compact report boundary.
+- `audit-existing-draft-batch` continues to iterate all targets internally in
+  one process; no per-item model loop is needed.
+- Each complete audit result is written once to its individual detail file.
+- `summary.json` now contains only status, counts, compact item metadata,
+  reasons, and `detailFile` references. It no longer duplicates complete reports
+  or post editor URLs.
+- Focused tests cover the compact report boundary. Repository validation passed:
+  79 test files, 614 tests, lint, and typecheck.
 
 ## Acceptance criteria
 
