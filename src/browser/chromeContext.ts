@@ -6,6 +6,8 @@ import { getChromeProfilePath } from "./chromeProfile.js";
 
 type PersistentContextLauncher = Pick<typeof chromium, "launchPersistentContext">;
 
+const profilePreparationTails = new Map<string, Promise<void>>();
+
 export function getChromeRecoveryProfilePath(config: Pick<AppConfig, "DATA_DIR">): string {
   return path.resolve(config.DATA_DIR, "chrome-profile-playwright-recovery");
 }
@@ -46,6 +48,41 @@ async function removeSessionLocks(sessionPath: string): Promise<void> {
   );
 }
 
+async function prepareSessionProfile(
+  sourcePath: string,
+  recoveryPath: string,
+  dataDir: string
+): Promise<string> {
+  const previous = profilePreparationTails.get(recoveryPath) ?? Promise.resolve();
+  const preparation = previous.catch(() => undefined).then(async () => {
+    await refreshRecoveryProfile(sourcePath, recoveryPath);
+    const sessionPath = await mkdtemp(path.join(dataDir, "chrome-profile-playwright-session-"));
+    try {
+      // fs.cp requires a non-existent destination when errorOnExist is enabled.
+      // mkdtemp gives us an exclusive path, so remove that empty placeholder first.
+      await rm(sessionPath, { recursive: true });
+      await cp(recoveryPath, sessionPath, { recursive: true, force: false, errorOnExist: true });
+      await removeSessionLocks(sessionPath);
+      return sessionPath;
+    } catch (error) {
+      await rm(sessionPath, { recursive: true, force: true });
+      throw error;
+    }
+  });
+  const tail = preparation.then(
+    () => undefined,
+    () => undefined
+  );
+  profilePreparationTails.set(recoveryPath, tail);
+  try {
+    return await preparation;
+  } finally {
+    if (profilePreparationTails.get(recoveryPath) === tail) {
+      profilePreparationTails.delete(recoveryPath);
+    }
+  }
+}
+
 export async function launchChromePersistentContext(
   config: AppConfig,
   launcher: PersistentContextLauncher = chromium
@@ -53,16 +90,8 @@ export async function launchChromePersistentContext(
   const profilePath = getChromeProfilePath(config);
   await mkdir(profilePath, { recursive: true });
   const recoveryPath = getChromeRecoveryProfilePath(config);
-  await refreshRecoveryProfile(profilePath, recoveryPath);
-  const sessionPath = await mkdtemp(
-    path.join(config.DATA_DIR, "chrome-profile-playwright-session-")
-  );
+  const sessionPath = await prepareSessionProfile(profilePath, recoveryPath, config.DATA_DIR);
   try {
-    // fs.cp requires a non-existent destination when errorOnExist is enabled.
-    // mkdtemp gives us an exclusive path, so remove that empty placeholder first.
-    await rm(sessionPath, { recursive: true });
-    await cp(recoveryPath, sessionPath, { recursive: true, force: false, errorOnExist: true });
-    await removeSessionLocks(sessionPath);
     const context = await launcher.launchPersistentContext(sessionPath, launchOptions(config));
     const close = context.close.bind(context);
     context.close = async (...args) => {

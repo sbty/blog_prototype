@@ -106,4 +106,39 @@ describe("Chrome persistent-context recovery", () => {
     await expect(readFile(path.join(sessionPath, "Default", "LOCK"), "utf8")).rejects.toThrow();
     await context.close();
   });
+
+  it("serializes concurrent recovery refreshes while creating isolated sessions", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "blogger-chrome-context-test-"));
+    temporaryDirectories.push(root);
+    const sourceProfile = path.join(root, "source-profile");
+    await mkdir(path.join(sourceProfile, "Default"), { recursive: true });
+    await writeFile(path.join(sourceProfile, "Default", "Preferences"), "shared-profile", "utf8");
+    const config = loadConfig({
+      DATA_DIR: root,
+      CHROME_PROFILE_PATH: sourceProfile,
+      ENABLE_DRY_RUN: "false"
+    });
+    const contexts = Array.from({ length: 4 }, () => ({
+      close: vi.fn().mockResolvedValue(undefined)
+    }));
+    let launchIndex = 0;
+    const launcher = {
+      launchPersistentContext: vi.fn().mockImplementation(async (sessionPath: string) => {
+        const context = contexts[launchIndex++];
+        await expect(
+          readFile(path.join(sessionPath, "Default", "Preferences"), "utf8")
+        ).resolves.toBe("shared-profile");
+        return context;
+      })
+    };
+
+    const launched = await Promise.all(
+      contexts.map(() => launchChromePersistentContext(config, launcher))
+    );
+
+    expect(new Set(launcher.launchPersistentContext.mock.calls.map(([profile]) => profile)).size).toBe(
+      contexts.length
+    );
+    await Promise.all(launched.map((context) => context.close()));
+  });
 });
