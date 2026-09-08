@@ -858,7 +858,7 @@ export class BloggerDryRunClient {
       await this.openPostEditorIfNeeded(page, input.artifactDir, input.article.title);
       await this.assertSessionReady(page, input.artifactDir);
       await this.assertEditorIdentity(page, input.artifactDir, input.adminUrl, input.postEditorUrl);
-      let { postSettings, schedulePreview } = await this.fillArticle(
+      const { postSettings, schedulePreview } = await this.fillArticle(
         page,
         input.article,
         input.artifactDir
@@ -1080,10 +1080,11 @@ export class BloggerDryRunClient {
           );
         }
       }
-      // Image insertion switches Blogger into Compose mode. Re-apply the
-      // metadata there because the live editor only commits labels reliably
-      // after the Compose-mode field has been blurred.
-      postSettings = await new BloggerPostSettings(this.selectors).apply(
+      // Image insertion switches Blogger into Compose mode. Only labels need
+      // to be replayed there so their autocomplete model commits on blur.
+      // Search description and permalink were already applied before upload;
+      // reopening those sections after the Picker closes is unreliable.
+      await new BloggerPostSettings(this.selectors).reapplyLabelsAfterImage(
         page,
         input.article,
         input.assertCanMutate

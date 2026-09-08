@@ -77,6 +77,23 @@ export class BloggerPostSettings {
     return { ...settings, applied: true };
   }
 
+  /** Re-applies only labels after Blogger switches the editor into Compose view. */
+  async reapplyLabelsAfterImage(
+    page: Page,
+    article: ArticleInput,
+    assertCanMutate?: () => Promise<void>
+  ): Promise<void> {
+    const { labels } = normalizePostSettings(article);
+    if (labels.length === 0) return;
+    await this.expandAndTypeLabels(
+      page,
+      this.selectors.labelsButton,
+      this.selectors.labelsInput,
+      labels.join(", "),
+      assertCanMutate
+    );
+  }
+
   /** Applies only the custom permalink; all other post settings remain untouched. */
   async applyCustomPermalinkOnly(
     page: Page,

@@ -46,7 +46,7 @@ describe("Blogger image upload recovery", () => {
     expect(selectors.saveMenuItem).toContain('has-text("保存")');
   });
 
-  it("reapplies metadata after an image switches the editor to Compose view before saving a draft", () => {
+  it("reapplies only labels after an image switches the editor to Compose view", () => {
     const methodStart = browserClient.indexOf("async saveDraft");
     const method = browserClient.slice(
       methodStart,
@@ -56,12 +56,13 @@ describe("Blogger image upload recovery", () => {
       "new BloggerImageUploader",
       method.indexOf("if (input.article.imagePath)")
     );
-    const metadata = method.indexOf("new BloggerPostSettings(this.selectors).apply", upload);
-    const save = method.indexOf("this.selectors.saveMenuItem", metadata);
+    const labels = method.indexOf(".reapplyLabelsAfterImage", upload);
+    const save = method.indexOf("this.selectors.saveMenuItem", labels);
 
     expect(upload).toBeGreaterThan(-1);
-    expect(metadata).toBeGreaterThan(upload);
-    expect(save).toBeGreaterThan(metadata);
+    expect(labels).toBeGreaterThan(upload);
+    expect(save).toBeGreaterThan(labels);
+    expect(method.slice(upload, save)).not.toContain(".apply(");
   });
 
   it("reloads an image-only update and rejects any persisted image count other than one", () => {
