@@ -1,12 +1,15 @@
 # Codex Handoff
 
 Updated: 2026-09-08 JST
-Status: complete — Phase 8 read-only existing-draft target selection v14
+Status: complete — automatic commit-and-push policy added
 Branch: main
-Commit: 158b3cd chore: automate agent work-unit commits
+Commit: 9fea60a docs: record read-only draft selection
 
 ## Completed
 
+- Updated root `AGENTS.md` to automatically push each coherent, validated work
+  unit after its local commit. Normal upstream setup is allowed; force-push,
+  branch-protection bypass, merge, tag, and PR creation remain excluded.
 - Ran `select-existing-draft-audit-targets` with the latest valid 64-item local
   preparation manifest and a new no-overwrite v14 output directory.
 - Result: `SELECTION_INCOMPLETE`; selected 0, excluded 60, unverified 4.

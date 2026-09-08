@@ -68,15 +68,18 @@ Git inspection:
 - Do not run an unrestricted `git diff` when the worktree is broad.
 - Inspect only goal-relevant diffs with `git diff -- <path>`.
 
-Git commits:
+Git commits and pushes:
 - Automatically create a local commit when a coherent, reviewable work unit is
   complete and its relevant validation passes; do not wait for a separate commit
   instruction.
+- After committing, automatically push the current branch to its configured
+  upstream. If it has no upstream, use a normal `git push -u origin <branch>`.
 - Prefer one commit per functional, documentation, or process unit. Avoid
   per-file, per-command, and broad catch-all commits.
 - Stage only files or hunks in the current scope and preserve unrelated changes.
-- Do not push, merge, tag, or open a pull request without explicit user
-  instruction.
+- Never force-push or bypass branch protection. Stop and report a rejected or
+  non-fast-forward push rather than rewriting remote history.
+- Do not merge, tag, or open a pull request without explicit user instruction.
 
 Validation:
 - During implementation, run the smallest relevant test/check first.
