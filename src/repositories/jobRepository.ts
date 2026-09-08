@@ -65,6 +65,21 @@ export class JobRepository {
     return row ? validatePersistedJob(row) : null;
   }
 
+  claimDraftCreation(input: { blogId: string; slug: string; title: string; jobId: string }): void {
+    const result = this.db
+      .prepare(
+        `INSERT INTO draft_creation_claims (blog_id, slug, title, job_id, created_at)
+         VALUES (@blogId, @slug, @title, @jobId, @now)
+         ON CONFLICT DO NOTHING`
+      )
+      .run({ ...input, now: nowIso() });
+    if (result.changes !== 1) {
+      throw new Error(
+        "Draft creation already attempted for this blog and slug/title; audit the existing draft before explicit recovery"
+      );
+    }
+  }
+
   updateStatus(id: string, status: JobStatus, message: string, metadata: unknown = {}): void {
     this.db.transaction(() => {
       const current = this.find(id);
