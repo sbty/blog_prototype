@@ -61,6 +61,16 @@ export function migrate(db: SqliteDatabase): void {
       FOREIGN KEY (job_id) REFERENCES jobs(id)
     );
 
+    CREATE TABLE IF NOT EXISTS draft_creation_claims (
+      blog_id TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      title TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES jobs(id),
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (blog_id, slug),
+      UNIQUE (blog_id, title)
+    );
+
     CREATE TABLE IF NOT EXISTS articles (
       id TEXT PRIMARY KEY,
       job_id TEXT NOT NULL,

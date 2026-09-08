@@ -19,8 +19,9 @@ area; never discover or load all instruction files recursively.
 ## Common execution policy
 
 - Complete an approved goal as one work unit. Give updates at material
-  milestones, not after every small action. A new `/goal` is needed only for a
-  new mutation scope, publication/deletion, spend limit, or genuine decision.
+  milestones, not after every small action. Continue through necessary work units
+  within the saved completion criteria; ask only at the decision boundaries in
+  `AGENTS.md`. Do not require a new `/goal` for routine implementation decisions.
 - Reuse existing evidence. Before an external mutation take one targeted
   baseline; afterward use one independent re-read. Preserve successful work.
 - On failure, diagnose once, make the smallest fix, run focused checks, and make

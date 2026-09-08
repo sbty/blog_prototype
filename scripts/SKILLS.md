@@ -11,5 +11,5 @@
 
 ## Thread handoff
 
-- At goal completion or an intentional pause, update `.codex/HANDOFF.md` once before ending the thread.
+- At interruption or when non-obvious resume state is needed, update `.codex/HANDOFF.md` once and keep the active plan current, following root `AGENTS.md`.
 - Replace stale task state instead of appending history. In a new thread, treat HANDOFF as orientation only and verify it against `git status`, `git diff`, and relevant code.

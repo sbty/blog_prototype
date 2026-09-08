@@ -5,7 +5,7 @@ import {
   type DraftSaveResult,
   type ExistingDraftImageUpdateResult
 } from "../browser/bloggerDryRun.js";
-import { extractBloggerPostId } from "../browser/bloggerEditorIdentity.js";
+import { extractBloggerBlogId, extractBloggerPostId } from "../browser/bloggerEditorIdentity.js";
 import { loadBloggerSelectors } from "../browser/bloggerSelectors.js";
 import type { BlogConfig } from "../config/blogConfig.js";
 import type { AppConfig } from "../config/env.js";
@@ -113,6 +113,19 @@ export class DraftSaveService {
         "Blogger drafts checked before save",
         preSaveAudit
       );
+      if (!input.blog.blogger.postEditorUrl) {
+        const blogId = extractBloggerBlogId(input.blog.adminUrl);
+        if (!blogId) throw new Error("Draft creation requires a Blogger blog ID");
+        await assertNotStopped(this.config.DATA_DIR);
+        // Keep the claim even if the browser or subsequent persistence audit fails:
+        // Blogger may have auto-saved before returning an error or an edit URL.
+        this.repos.jobs.claimDraftCreation({
+          blogId,
+          slug: input.article.slug,
+          title: input.article.title,
+          jobId
+        });
+      }
       const draft = validateDraftSaveResult(
         await client.saveDraft({
           adminUrl: input.blog.adminUrl,

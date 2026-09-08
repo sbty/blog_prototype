@@ -5,6 +5,18 @@ Key areas: `src/browser` (Blogger UI), `src/services` (workflows),
 `docs/adr` is historical only.
 
 Rules:
+- Continue autonomously within the user's completion criteria: inspect the current
+  implementation, preserve existing changes, save a plan, and choose the next
+  implementation/validation unit without waiting for routine confirmation.
+- Active completion criteria, evidence, progress, and concrete next actions are
+  tracked in [the draft completion plan](docs/draft-completion-plan.md). Verify
+  implementation when older plans or handoffs disagree. Record scope-expanding
+  improvements only; do not implement them as part of this goal.
+- Ask with a recommendation and reason only for major scope changes, new costs,
+  data deletion, production rollout, publication, or unresolved permission blocks.
+  Continue independent work while a decision is pending.
+- At interruption, save the plan, completed work, blockers, and exact next action
+  so that "continue" resumes the task. Report material progress concisely.
 - Never publish without explicit user approval.
 - Keep draft and scheduled-post mutation boundaries separate; never weaken them for tests.
 - Make minimal changes.
@@ -109,7 +121,9 @@ Git commits and pushes:
   because the branch requires pull requests, create or switch to a task-scoped
   `codex/` branch at the current HEAD and retry one normal push. Stop and report
   any other rejection or non-fast-forward result rather than rewriting history.
-- Do not merge, tag, or open a pull request without explicit user instruction.
+- PR creation is authorized for this scope. Review the diff and resolve findings
+  before merging; merge only when mandatory checks pass, there are no conflicts,
+  and the scoped change does not deploy to production. Do not tag without approval.
 
 Validation:
 - During implementation, run the smallest relevant test/check first.

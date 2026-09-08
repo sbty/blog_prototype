@@ -2,10 +2,11 @@
 
 Updated: 2026-09-08 JST
 
-This document is the current project-level planning authority. Phase checklists
+The active user-approved goal is now [draft completion](draft-completion-plan.md).
+The inventory below is historical and must be checked against the repository;
+it does not prevent autonomous work within that goal. Phase checklists
 record completed release scope, while `.codex/HANDOFF.md` records only the most
-recent bounded work unit. Finishing a work unit returns control here; it does
-not authorize continuing into adjacent work.
+recent bounded work unit. Follow the active plan for the next in-scope work unit.
 
 ## Verified baseline
 

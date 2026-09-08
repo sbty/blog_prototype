@@ -49,6 +49,7 @@ function fixture(enabled = true, authorized = "1111111111") {
   migrate(db);
   return {
     dir,
+    db,
     config: loadConfig({
       DATA_DIR: dir,
       DATABASE_PATH: path.join(dir, "app.sqlite"),
@@ -64,6 +65,169 @@ function fixture(enabled = true, authorized = "1111111111") {
 }
 
 describe("DraftSaveService", () => {
+  it.each(["success", "browser error", "audit error"])(
+    "retains the creation claim across restart after %s even when Blogger lists no draft",
+    async (outcome) => {
+      const { config, repos, db } = fixture();
+      const saveDraft = vi.fn(async (input) => {
+        if (outcome === "browser error") throw new Error("Connection lost after auto-save");
+        const screenshotPath = path.join(input.artifactDir, "screenshots", "draft.png");
+        mkdirSync(path.dirname(screenshotPath), { recursive: true });
+        writeFileSync(
+          screenshotPath,
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+        );
+        return {
+          screenshotPath,
+          currentUrl: "https://www.blogger.com/blog/post/edit/1111111111/2222222222",
+          savedAt: "2026-07-28T00:00:00.000Z"
+        };
+      });
+      const client = async () => ({ findDrafts: noDrafts, saveDraft });
+      const auditor = {
+        execute: async () => {
+          if (outcome === "audit error") throw new Error("Persistence audit unavailable");
+          return { status: "PASS", reasons: [] };
+        }
+      };
+      const service = new DraftSaveService(
+        config,
+        repos,
+        pino({ enabled: false }),
+        client,
+        auditor as never
+      );
+      try {
+        if (outcome === "success") await service.execute({ blog, article });
+        else
+          await expect(service.execute({ blog, article })).rejects.toThrow(
+            outcome === "browser error" ? "Connection lost" : "Persistence audit unavailable"
+          );
+      } finally {
+        db.close();
+      }
+      const reopened = openDatabase(config.DATABASE_PATH);
+      try {
+        migrate(reopened);
+        const resumed = new DraftSaveService(
+          config,
+          {
+            blogs: new BlogRepository(reopened),
+            jobs: new JobRepository(reopened),
+            articles: new ArticleRepository(reopened)
+          },
+          pino({ enabled: false }),
+          client,
+          auditor as never
+        );
+        for (const changedArticle of [
+          article,
+          { ...article, title: "Changed title" },
+          { ...article, slug: "changed-slug" }
+        ]) {
+          await expect(
+            resumed.execute({ blog: { ...blog, blogKey: "alias" }, article: changedArticle })
+          ).rejects.toThrow("Draft creation already attempted");
+        }
+        expect(saveDraft).toHaveBeenCalledOnce();
+      } finally {
+        reopened.close();
+      }
+    }
+  );
+
+  it("retries a read failure before creation and allows the same article on a different blog", async () => {
+    const { config, repos, db } = fixture();
+    config.AUTHORIZED_BLOG_IDS = ["1111111111", "3333333333"];
+    const findDrafts = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Read unavailable"))
+      .mockImplementation(noDrafts);
+    const saveDraft = vi.fn(async (input) => {
+      const screenshotPath = path.join(input.artifactDir, "screenshots", "draft.png");
+      mkdirSync(path.dirname(screenshotPath), { recursive: true });
+      writeFileSync(screenshotPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+      const blogId = input.adminUrl.split("/").at(-1);
+      return {
+        screenshotPath,
+        currentUrl: `https://www.blogger.com/blog/post/edit/${blogId}/2222222222`,
+        savedAt: "2026-07-28T00:00:00.000Z"
+      };
+    });
+    const service = new DraftSaveService(
+      config,
+      repos,
+      pino({ enabled: false }),
+      async () => ({ findDrafts, saveDraft }),
+      passingPersistenceAudit as never
+    );
+    try {
+      await expect(service.execute({ blog, article })).rejects.toThrow("Read unavailable");
+      const first = await service.execute({ blog, article });
+      const second = await service.execute({
+        blog: {
+          ...blog,
+          blogKey: "blog-2",
+          adminUrl: "https://www.blogger.com/blog/posts/3333333333"
+        },
+        article
+      });
+      expect(repos.jobs.find(first.jobId)?.status).toBe("DRAFT_SAVED");
+      expect(repos.jobs.find(second.jobId)?.status).toBe("DRAFT_SAVED");
+      expect(saveDraft).toHaveBeenCalledTimes(2);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("allows only one concurrent creation when both reads report no existing draft", async () => {
+    const { config, repos, db } = fixture();
+    const secondDb = openDatabase(config.DATABASE_PATH);
+    let reads = 0;
+    let release!: () => void;
+    const bothRead = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const findDrafts = async () => {
+      if (++reads === 2) release();
+      await bothRead;
+      return noDrafts();
+    };
+    const saveDraft = vi.fn(async () => {
+      throw new Error("Unknown save outcome");
+    });
+    const client = async () => ({ findDrafts, saveDraft });
+    const first = new DraftSaveService(config, repos, pino({ enabled: false }), client);
+    const second = new DraftSaveService(
+      config,
+      {
+        blogs: new BlogRepository(secondDb),
+        jobs: new JobRepository(secondDb),
+        articles: new ArticleRepository(secondDb)
+      },
+      pino({ enabled: false }),
+      client
+    );
+    try {
+      const results = await Promise.allSettled([
+        first.execute({ blog, article }),
+        second.execute({ blog, article })
+      ]);
+      expect(results.every((result) => result.status === "rejected")).toBe(true);
+      expect(
+        results.some(
+          (result) =>
+            result.status === "rejected" &&
+            String(result.reason).includes("Draft creation already attempted")
+        )
+      ).toBe(true);
+      expect(saveDraft).toHaveBeenCalledOnce();
+    } finally {
+      secondDb.close();
+      db.close();
+    }
+  });
+
   it("records a draft save without using a real Blogger client", async () => {
     const { config, repos } = fixture();
     const saveDraft = vi.fn().mockImplementation(async (input) => {
