@@ -14,13 +14,16 @@ describe("existing draft audit batch CLI", () => {
     expect(createOutput).toBeGreaterThan(preflight);
   });
 
-  it("writes individual reports and a summary without a Blogger mutation command", () => {
+  it("writes individual reports and a compact summary without a Blogger mutation command", () => {
     const command = source.slice(
       source.indexOf('if (args.command === "audit-existing-draft-batch")'),
-      source.indexOf('if (args.command === "prepare-article-queue")')
+      source.indexOf('if (args.command === "select-existing-draft-audit-targets")')
     );
 
     expect(command).toContain('join(outputPath, "summary.json")');
+    expect(command).toContain("summarizeExistingDraftCompleteAuditBatch(report, detailFile)");
+    expect(command).toContain("JSON.stringify(summary, null, 2)");
+    expect(command).not.toContain("JSON.stringify(report, null, 2)");
     expect(command).toContain('flag: "wx"');
     expect(command).not.toContain("saveDraft");
     expect(command).not.toContain("schedulePost");

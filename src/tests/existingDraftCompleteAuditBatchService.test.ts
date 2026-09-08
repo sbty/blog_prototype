@@ -6,6 +6,7 @@ import type { ArticleInput } from "../domain/article.js";
 import type { ExistingDraftCompleteAuditReport } from "../services/existingDraftCompleteAuditService.js";
 import {
   ExistingDraftCompleteAuditBatchService,
+  summarizeExistingDraftCompleteAuditBatch,
   type ExistingDraftCompleteAuditBatchItemInput
 } from "../services/existingDraftCompleteAuditBatchService.js";
 
@@ -178,6 +179,36 @@ describe("ExistingDraftCompleteAuditBatchService", () => {
       reasons: ["net::ERR_CONNECTION_TIMED_OUT"]
     });
     expect(result.items[1].status).toBe("PASS");
+  });
+
+  it("creates a compact summary that references details without embedding full reports", async () => {
+    const inputs = [item(1)];
+    const service = new ExistingDraftCompleteAuditBatchService(
+      loadConfig({}),
+      () => new Date("2026-09-01T00:00:00.000Z"),
+      () => ({
+        execute: async (input) => report(input as ExistingDraftCompleteAuditBatchItemInput, "PASS")
+      })
+    );
+    const result = await service.execute({ items: inputs });
+
+    const summary = summarizeExistingDraftCompleteAuditBatch(
+      result,
+      (candidate) => `${candidate.index + 1}-${candidate.slug}.json`
+    );
+
+    expect(summary.items[0]).toEqual({
+      index: 0,
+      slug: inputs[0].slug,
+      blogKey: inputs[0].blog.blogKey,
+      postId: inputs[0].postId,
+      status: "PASS",
+      auditedAt: "2026-09-01T00:00:00.000Z",
+      reasons: [],
+      detailFile: `1-${inputs[0].slug}.json`
+    });
+    expect(JSON.stringify(summary)).not.toContain("postEditorUrl");
+    expect(JSON.stringify(summary)).not.toContain('"report"');
   });
 });
 
